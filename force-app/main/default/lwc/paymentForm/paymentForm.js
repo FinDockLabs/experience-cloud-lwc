@@ -22,25 +22,9 @@ export default class PaymentForm extends LightningElement {
     @track currentStep = 1;
 
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
+    _prevStep = 1;
 
     @track paymentIntent = {};
-
-    handleFieldChange(event) {
-        this[event.target.dataset.field] = event.detail.value;
-        this._updatePaymentIntentContext();
-    }
-
-    handleAmountFrequencyChanged(event) {
-        this.amountOneTime = event.detail.amountOneTime;
-        this.amountRecurring = event.detail.amountRecurring;
-        this.frequency = event.detail.frequency;
-        this._updatePaymentIntentContext();
-    }
-
-    handlePaymentMethodChanged(event) {
-        this.selectedPaymentMethod = event.detail;
-        this._updatePaymentIntentContext();
-    }
 
     get isMultiScreen() {
         return this.screenMode === 'MultiScreen';
@@ -82,6 +66,37 @@ export default class PaymentForm extends LightningElement {
             this.selectedPaymentMethod &&
             allInputsValid
         );
+    }
+
+    get stepAnnouncement() {
+        if (!this.isMultiScreen) return '';
+        const labels = ['Amount and Frequency', 'Personal Information', 'Payment Method'];
+        return `Step ${this.currentStep} of 3: ${labels[this.currentStep - 1]}`;
+    }
+
+    renderedCallback() {
+        if (this.isMultiScreen && this._prevStep !== this.currentStep) {
+            this._prevStep = this.currentStep;
+            const heading = this.template.querySelector('[data-step-heading]');
+            if (heading) heading.focus();
+        }
+    }
+
+    handleFieldChange(event) {
+        this[event.target.dataset.field] = event.detail.value;
+        this._updatePaymentIntentContext();
+    }
+
+    handleAmountFrequencyChanged(event) {
+        this.amountOneTime = event.detail.amountOneTime;
+        this.amountRecurring = event.detail.amountRecurring;
+        this.frequency = event.detail.frequency;
+        this._updatePaymentIntentContext();
+    }
+
+    handlePaymentMethodChanged(event) {
+        this.selectedPaymentMethod = event.detail;
+        this._updatePaymentIntentContext();
     }
 
     handleNextStep() {
