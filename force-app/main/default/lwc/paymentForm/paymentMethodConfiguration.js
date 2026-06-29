@@ -199,7 +199,7 @@ export const PAYMENT_METHOD_CONFIG = [
     {
         paymentMethod: 'CreditCard',
         paymentProcessor: 'PaymentHub-Stripe',
-        target: 'My Stripe Test Account',
+        target: 'Stripe-Main-Account',
         enabledOneTime: true,
         enabledRecurring: true,
         isDefaultOneTime: true,
@@ -228,7 +228,7 @@ export const PAYMENT_METHOD_CONFIG = [
     {
         paymentMethod: 'Ideal',
         paymentProcessor: 'PaymentHub-Stripe',
-        target: 'My Stripe Test Account',
+        target: 'Stripe-Main-Account',
         enabledOneTime: true,
         enabledRecurring: false,
         isDefaultOneTime: false,
@@ -240,7 +240,7 @@ export const PAYMENT_METHOD_CONFIG = [
     {
         paymentMethod: 'Bancontact',
         paymentProcessor: 'PaymentHub-Stripe',
-        target: 'My Stripe Test Account',
+        target: 'Stripe-Main-Account',
         enabledOneTime: true,
         enabledRecurring: false,
         isDefaultOneTime: false,
@@ -251,7 +251,7 @@ export const PAYMENT_METHOD_CONFIG = [
     {
         paymentMethod: 'SEPA Direct Debit',
         paymentProcessor: 'PaymentHub-Stripe',
-        target: 'My Stripe Test Account',
+        target: 'Stripe-Main-Account',
         enabledOneTime: true,
         enabledRecurring: true,
         isDefaultOneTime: false,
@@ -262,7 +262,7 @@ export const PAYMENT_METHOD_CONFIG = [
     {
         paymentMethod: 'BACS Direct Debit',
         paymentProcessor: 'PaymentHub-Stripe',
-        target: 'My Stripe Test Account',
+        target: 'Stripe-Main-Account',
         enabledOneTime: false,
         enabledRecurring: false,
         isDefaultOneTime: false,
