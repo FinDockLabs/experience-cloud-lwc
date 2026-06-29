@@ -17,8 +17,7 @@ export default class PaymentSelector extends LightningElement {
     }
 
     get enrichedConfigString() {
-        if (!this._enrichedConfig) return null;
-        return JSON.stringify(this._enrichedConfig);
+        return this._enrichedConfig ? JSON.stringify(this._enrichedConfig) : null;
     }
 
     get normalizedFrequency() {
@@ -39,11 +38,11 @@ export default class PaymentSelector extends LightningElement {
 
     _enrich(m) {
         return {
-            key: `${m.paymentProcessor}--${m.paymentMethod}`,
+            key: `${m.paymentProcessor}-${m.paymentMethod}`,
             name: m.paymentMethod,
             processor: m.paymentProcessor,
-            processorPrettyName: m.paymentProcessor,
-            processorFriendlyName: m.paymentProcessor,
+            processorPrettyName: m.processorPrettyName ?? m.paymentProcessor,
+            processorFriendlyName: m.processorFriendlyName ?? m.paymentProcessor,
             merchantAccount: m.target,
             merchantAccountGroup: 'static',
             target: m.target,
@@ -53,7 +52,7 @@ export default class PaymentSelector extends LightningElement {
             enabledRecurring: m.enabledRecurring ?? false,
             isDefaultOneTime: m.isDefaultOneTime ?? false,
             isDefaultRecurring: m.isDefaultRecurring ?? false,
-            supportsRecurring: m.enabledRecurring ?? false,
+            supportsRecurring: m.supportsRecurring ?? m.enabledRecurring ?? false,
             active: true,
             parameters: this._enrichParameters(m.parameters)
         };
@@ -63,10 +62,10 @@ export default class PaymentSelector extends LightningElement {
         return (parameters ?? []).map(p => ({
             name: p.name,
             value: p.value ?? '',
-            visibleToCustomer: p.visibleToCustomer ?? true,
+            visibleToCustomer: p.visibleToCustomer ?? false,
             displayLabel: p.displayLabel ?? p.name,
             required: p.required ?? false,
-            dataType: p.dataType ?? 'String',
+            data_type: p.data_type ?? p.dataType ?? 'String',
             description: p.description ?? ''
         }));
     }

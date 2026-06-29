@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <description>Pro-code payment form — a drop-in replacement for a payment Flow screen. Supports one-time and recurring payments with configurable currency and frequency toggle.</description>
+    <isExposed>true</isExposed>
+    <masterLabel>Payment Form</masterLabel>
+    <targets>
+        <target>lightning__RecordPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightningCommunity__Page</target>
+        <target>lightningCommunity__Default</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage,lightning__HomePage,lightningCommunity__Default">
+            <property name="screenMode" type="String" label="Screen Mode"
+                      description="Controls the screen layout." datasource="OneScreen, MultiScreen" default="OneScreen"/>
+            <property name="currency" type="String" label="Currency"
+                      description="ISO currency code shown in the amount picker (e.g. EUR, USD, GBP)." default="EUR"/>
+            <property name="hideFrequency" type="Boolean" label="Hide Frequency Toggle"
+                      description="Hide the one-time / recurring frequency selector. By default the toggle is visible."/>
+            <property name="defaultFrequency" type="String" label="Default Frequency"
+                      description="Pre-selected frequency when the form loads." datasource="oneTime, recurring" default="oneTime"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

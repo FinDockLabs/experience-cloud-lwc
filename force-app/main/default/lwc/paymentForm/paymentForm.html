@@ -1,4 +1,3 @@
-<!-- Custom Payment -->
 <template>
     <div class="slds-card">
         <div class="slds-card__body slds-card__body_inner">
@@ -11,7 +10,10 @@
             <template lwc:if={showAmountStep}>
                 <div class="slds-form slds-form_stacked slds-m-bottom_medium">
                     <c-amount-and-frequency
-                            onamountfrequencychange={handleAmountFrequencyChanged}>
+                        default-currency={currency}
+                        show-frequency-toggle={showFrequency}
+                        default-frequency={defaultFrequency}
+                        onamountfrequencychange={handleAmountFrequencyChanged}>
                     </c-amount-and-frequency>
                 </div>
                 <template lwc:if={isMultiScreen}>
