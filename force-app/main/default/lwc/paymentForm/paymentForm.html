@@ -1,4 +1,7 @@
 <template>
+    <!-- Announces step transitions to screen readers (WCAG 4.1.3) -->
+    <div aria-live="polite" class="visually-hidden" aria-atomic="true">{stepAnnouncement}</div>
+
     <div class="slds-card">
         <div class="slds-card__body slds-card__body_inner">
             <!-- Progress indicator (MultiScreen only) -->
@@ -8,6 +11,7 @@
 
             <!-- Step 1: Amount & Frequency -->
             <template lwc:if={showAmountStep}>
+                <h2 class="visually-hidden" tabindex="-1" data-step-heading>Amount and Frequency</h2>
                 <div class="slds-form slds-form_stacked slds-m-bottom_medium">
                     <c-amount-and-frequency
                         default-currency={currency}
@@ -18,8 +22,8 @@
                 </div>
                 <template lwc:if={isMultiScreen}>
                     <div class="step-navigation">
-                        <span></span>
                         <lightning-button
+                            class="step-navigation-trailing"
                             label="Next"
                             variant="brand"
                             onclick={handleNextStep}
@@ -31,7 +35,9 @@
 
             <!-- Step 2: Personal Information -->
             <template lwc:if={showPersonalInfoStep}>
-                <div class="slds-form slds-form_stacked slds-m-bottom_medium">
+                <h2 class="visually-hidden" tabindex="-1" data-step-heading>Personal Information</h2>
+                <fieldset class="form-section slds-form slds-form_stacked slds-m-bottom_medium">
+                    <legend class="visually-hidden">Personal Information</legend>
                     <lightning-input type="text"
                                      label="First Name"
                                      placeholder="First name"
@@ -56,7 +62,7 @@
                                      required
                                      onchange={handleFieldChange}>
                     </lightning-input>
-                </div>
+                </fieldset>
                 <template lwc:if={isMultiScreen}>
                     <div class="step-navigation">
                         <lightning-button
@@ -75,6 +81,7 @@
 
             <!-- Step 3: Payment Method & Pay Button -->
             <template lwc:if={showPaymentStep}>
+                <h2 class="visually-hidden" tabindex="-1" data-step-heading>Payment Method</h2>
                 <c-payment-selector
                     config={paymentMethodConfig}
                     frequency={frequency}
