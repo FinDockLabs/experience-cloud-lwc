@@ -18,8 +18,7 @@ export default class PaymentSelector extends LightningElement {
 
     get enrichedConfigString() {
         if (!this._enrichedConfig) return null;
-        const json = JSON.stringify(this._enrichedConfig);
-        return json;
+        return JSON.stringify(this._enrichedConfig);
     }
 
     get normalizedFrequency() {
