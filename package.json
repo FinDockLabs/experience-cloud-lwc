@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "FinDock Experience Cloud LWC components",
   "scripts": {
+    "generate:config": "node scripts/generate-payment-config.mjs",
     "test": "npm run test:unit",
     "test:unit": "sfdx-lwc-jest",
     "test:unit:watch": "sfdx-lwc-jest --watch",

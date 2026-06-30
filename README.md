@@ -24,7 +24,7 @@ This is the code-first alternative to the [experience-cloud-flow-templates](http
 
 1. Press the **Deploy to Salesforce** button below.
 2. Follow [these instructions](https://help.salesforce.com/s/articleView?id=experience.rss_flow_guestuser.htm&type=5) to set up Guest User access for the site. Make sure the **FinDock Experience Cloud** permission set (included in the FinDock | ProcessingHub package) is assigned to the site's Guest User.
-3. Open `force-app/main/default/lwc/paymentForm/paymentMethodConfiguration.js` and configure the payment methods and processors that are active in your org. See the comments in that file for a ready-to-run Apex script that generates the config automatically from your org.
+3. Run `npm run generate:config -- --org <alias>` to generate `paymentMethodConfiguration.js` from your org's active payment methods, then fill in the `target` field for each entry. See [Payment Method Configuration](#payment-method-configuration) below for details.
 4. Update `SuccessURL` and `FailureURL` in `paymentForm.js` (`_updatePaymentIntentContext`) to point to pages within your Experience Cloud site.
 5. Add `c-payment-form` to your Experience Cloud page in Experience Builder. Set the **Screen Mode**, **Currency**, and other design properties as needed.
 6. Go to the Experience Cloud Administration → Preferences → enable **Allow guest users to access public APIs**.
@@ -45,7 +45,31 @@ For unauthenticated payers the following must all be in place or payments will f
 
 Payment methods are defined statically in `paymentMethodConfiguration.js` — no runtime Apex call to `GET /PaymentMethods` is needed. Edit this file to match the payment methods and processors active in your org.
 
-Run the Apex script in the comments of `paymentMethodConfiguration.js` in Developer Console → Execute Anonymous to generate a ready-to-paste config from your org's active methods.
+### Generating the config from your org
+
+Use the included script to generate a ready-to-edit `paymentMethodConfiguration.js` from your org's active payment methods.
+
+**Prerequisites:** [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli) (`sf`) installed and authenticated to the target org.
+
+```bash
+npm run generate:config -- --org <orgAlias>
+```
+
+Example:
+
+```bash
+npm run generate:config -- --org Dev_org
+```
+
+The script calls `GET /PaymentMethods` via anonymous Apex, formats the response into the flat config array, and overwrites `paymentMethodConfiguration.js` directly. After it runs:
+
+1. **Fill in the `target` field** for each entry — the script marks these as `TODO` with an inline comment explaining where to find the value (FinDock Setup → Processors & Methods → Accounts tab). The merchant account is not returned by the API, so this step is always manual.
+2. **Review `enabledOneTime` / `enabledRecurring`** — the script enables one-time for all methods and recurring only where `supportsRecurring` is `true`. Adjust if needed.
+3. **Set `isDefaultOneTime` / `isDefaultRecurring`** — the script pre-selects the first eligible method. Change if a different method should be the default.
+
+**Alternative — Developer Console:** paste `scripts/apex/generate-payment-method-config.apex` into Execute Anonymous, run it, then find the `FDPAYCONFIG:` line in the debug log and copy the JSON from there.
+
+### Config field reference
 
 Key fields:
 
