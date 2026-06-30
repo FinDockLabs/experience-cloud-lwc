@@ -71,6 +71,7 @@ export default class PaymentSelector extends LightningElement {
     }
 
     handlePaymentMethodChanged(event) {
+        event.stopPropagation();
         this.dispatchEvent(new CustomEvent('paymentmethodchanged', {
             detail: event.detail,
             bubbles: true,

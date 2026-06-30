@@ -24,6 +24,7 @@
                     <div class="step-navigation">
                         <lightning-button
                             class="step-navigation-trailing"
+                            data-id="next"
                             label="Next"
                             variant="brand"
                             onclick={handleNextStep}
@@ -66,10 +67,12 @@
                 <template lwc:if={isMultiScreen}>
                     <div class="step-navigation">
                         <lightning-button
+                            data-id="back"
                             label="Back"
                             onclick={handlePreviousStep}>
                         </lightning-button>
                         <lightning-button
+                            data-id="next"
                             label="Next"
                             variant="brand"
                             onclick={handleNextStep}
@@ -90,6 +93,7 @@
                 <template lwc:if={isMultiScreen}>
                     <div class="step-navigation">
                         <lightning-button
+                            data-id="back"
                             label="Back"
                             onclick={handlePreviousStep}>
                         </lightning-button>
