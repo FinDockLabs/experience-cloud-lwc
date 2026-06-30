@@ -1,0 +1,110 @@
+<template>
+    <!-- Announces step transitions to screen readers (WCAG 4.1.3) -->
+    <div aria-live="polite" class="visually-hidden" aria-atomic="true">{stepAnnouncement}</div>
+
+    <div class="slds-card">
+        <div class="slds-card__body slds-card__body_inner">
+            <!-- Progress indicator (MultiScreen only) -->
+            <template lwc:if={isMultiScreen}>
+                <c-experience-progress-stages current-stage={currentStep}></c-experience-progress-stages>
+            </template>
+
+            <!-- Step 1: Amount & Frequency -->
+            <template lwc:if={showAmountStep}>
+                <h2 class="visually-hidden" tabindex="-1" data-step-heading>Amount and Frequency</h2>
+                <div class="slds-form slds-form_stacked slds-m-bottom_medium">
+                    <c-amount-and-frequency
+                        default-currency={currency}
+                        show-frequency-toggle={showFrequency}
+                        default-frequency={defaultFrequency}
+                        onamountfrequencychange={handleAmountFrequencyChanged}>
+                    </c-amount-and-frequency>
+                </div>
+                <template lwc:if={isMultiScreen}>
+                    <div class="step-navigation">
+                        <lightning-button
+                            class="step-navigation-trailing"
+                            data-id="next"
+                            label="Next"
+                            variant="brand"
+                            onclick={handleNextStep}
+                            disabled={isStep1NextDisabled}>
+                        </lightning-button>
+                    </div>
+                </template>
+            </template>
+
+            <!-- Step 2: Personal Information -->
+            <template lwc:if={showPersonalInfoStep}>
+                <h2 class="visually-hidden" tabindex="-1" data-step-heading>Personal Information</h2>
+                <fieldset class="form-section slds-form slds-form_stacked slds-m-bottom_medium">
+                    <legend class="visually-hidden">Personal Information</legend>
+                    <lightning-input type="text"
+                                     label="First Name"
+                                     placeholder="First name"
+                                     value={firstName}
+                                     data-field="firstName"
+                                     required
+                                     onchange={handleFieldChange}>
+                    </lightning-input>
+                    <lightning-input type="text"
+                                     label="Last Name"
+                                     placeholder="Last name"
+                                     value={lastName}
+                                     data-field="lastName"
+                                     required
+                                     onchange={handleFieldChange}>
+                    </lightning-input>
+                    <lightning-input type="email"
+                                     label="Email Address"
+                                     placeholder="name@example.com"
+                                     value={email}
+                                     data-field="email"
+                                     required
+                                     onchange={handleFieldChange}>
+                    </lightning-input>
+                </fieldset>
+                <template lwc:if={isMultiScreen}>
+                    <div class="step-navigation">
+                        <lightning-button
+                            data-id="back"
+                            label="Back"
+                            onclick={handlePreviousStep}>
+                        </lightning-button>
+                        <lightning-button
+                            data-id="next"
+                            label="Next"
+                            variant="brand"
+                            onclick={handleNextStep}
+                            disabled={isStep2NextDisabled}>
+                        </lightning-button>
+                    </div>
+                </template>
+            </template>
+
+            <!-- Step 3: Payment Method & Pay Button -->
+            <template lwc:if={showPaymentStep}>
+                <h2 class="visually-hidden" tabindex="-1" data-step-heading>Payment Method</h2>
+                <c-payment-selector
+                    config={paymentMethodConfig}
+                    frequency={frequency}
+                    onpaymentmethodchanged={handlePaymentMethodChanged}>
+                </c-payment-selector>
+                <template lwc:if={isMultiScreen}>
+                    <div class="step-navigation">
+                        <lightning-button
+                            data-id="back"
+                            label="Back"
+                            onclick={handlePreviousStep}>
+                        </lightning-button>
+                        <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled}></cpm-pay-button>
+                    </div>
+                </template>
+                <template lwc:else>
+                    <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled}></cpm-pay-button>
+                </template>
+            </template>
+
+        </div>
+    </div>
+</template>
