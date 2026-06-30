@@ -4,6 +4,15 @@
 
     <div class="slds-card">
         <div class="slds-card__body slds-card__body_inner">
+
+            <!-- DEBUG: config error panel — remove before go-live -->
+            <template lwc:if={configError}>
+                <div class="error-debug-panel" role="alert">
+                    <p class="error-debug-title">{labels.ec_debug_config_error_title}</p>
+                    <p class="error-debug-body">{configError}</p>
+                </div>
+            </template>
+
             <!-- Progress indicator (MultiScreen only) -->
             <template lwc:if={isMultiScreen}>
                 <c-experience-progress-stages current-stage={currentStep}></c-experience-progress-stages>
@@ -11,7 +20,7 @@
 
             <!-- Step 1: Amount & Frequency -->
             <template lwc:if={showAmountStep}>
-                <h2 class="visually-hidden" tabindex="-1" data-step-heading>Amount and Frequency</h2>
+                <h2 class="visually-hidden" tabindex="-1" data-step-heading>{labels.ec_sr_step_amount_frequency}</h2>
                 <div class="slds-form slds-form_stacked slds-m-bottom_medium">
                     <c-amount-and-frequency
                         default-currency={currency}
@@ -25,7 +34,7 @@
                         <lightning-button
                             class="step-navigation-trailing"
                             data-id="next"
-                            label="Next"
+                            label={labels.ec_label_next}
                             variant="brand"
                             onclick={handleNextStep}
                             disabled={isStep1NextDisabled}>
@@ -36,28 +45,28 @@
 
             <!-- Step 2: Personal Information -->
             <template lwc:if={showPersonalInfoStep}>
-                <h2 class="visually-hidden" tabindex="-1" data-step-heading>Personal Information</h2>
+                <h2 class="visually-hidden" tabindex="-1" data-step-heading>{labels.ec_sr_step_personal_info}</h2>
                 <fieldset class="form-section slds-form slds-form_stacked slds-m-bottom_medium">
-                    <legend class="visually-hidden">Personal Information</legend>
+                    <legend class="visually-hidden">{labels.ec_sr_personal_info_group}</legend>
                     <lightning-input type="text"
-                                     label="First Name"
-                                     placeholder="First name"
+                                     label={labels.ec_label_first_name}
+                                     placeholder={labels.ec_placeholder_first_name}
                                      value={firstName}
                                      data-field="firstName"
                                      required
                                      onchange={handleFieldChange}>
                     </lightning-input>
                     <lightning-input type="text"
-                                     label="Last Name"
-                                     placeholder="Last name"
+                                     label={labels.ec_label_last_name}
+                                     placeholder={labels.ec_placeholder_last_name}
                                      value={lastName}
                                      data-field="lastName"
                                      required
                                      onchange={handleFieldChange}>
                     </lightning-input>
                     <lightning-input type="email"
-                                     label="Email Address"
-                                     placeholder="name@example.com"
+                                     label={labels.ec_label_email_address}
+                                     placeholder={labels.ec_placeholder_email}
                                      value={email}
                                      data-field="email"
                                      required
@@ -68,12 +77,12 @@
                     <div class="step-navigation">
                         <lightning-button
                             data-id="back"
-                            label="Back"
+                            label={labels.ec_label_back}
                             onclick={handlePreviousStep}>
                         </lightning-button>
                         <lightning-button
                             data-id="next"
-                            label="Next"
+                            label={labels.ec_label_next}
                             variant="brand"
                             onclick={handleNextStep}
                             disabled={isStep2NextDisabled}>
@@ -84,27 +93,36 @@
 
             <!-- Step 3: Payment Method & Pay Button -->
             <template lwc:if={showPaymentStep}>
-                <h2 class="visually-hidden" tabindex="-1" data-step-heading>Payment Method</h2>
+                <h2 class="visually-hidden" tabindex="-1" data-step-heading>{labels.ec_sr_step_payment_method}</h2>
                 <c-payment-selector
                     config={paymentMethodConfig}
                     frequency={frequency}
+                    payment-intent-response={paymentError}
                     onpaymentmethodchanged={handlePaymentMethodChanged}>
                 </c-payment-selector>
                 <template lwc:if={isMultiScreen}>
                     <div class="step-navigation">
                         <lightning-button
                             data-id="back"
-                            label="Back"
+                            label={labels.ec_label_back}
                             onclick={handlePreviousStep}>
                         </lightning-button>
-                        <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled}></cpm-pay-button>
+                        <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} onresult={handlePaymentResult}></cpm-pay-button>
                     </div>
                 </template>
                 <template lwc:else>
-                    <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled}></cpm-pay-button>
+                    <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} onresult={handlePaymentResult}></cpm-pay-button>
                 </template>
             </template>
 
         </div>
     </div>
+
+    <!-- DEBUG: temporary error panel for testing — remove before go-live -->
+    <template lwc:if={paymentError}>
+        <div class="error-debug-panel" role="alert">
+            <p class="error-debug-title">{labels.ec_debug_error_title}</p>
+            <pre class="error-debug-body">{paymentErrorJson}</pre>
+        </div>
+    </template>
 </template>

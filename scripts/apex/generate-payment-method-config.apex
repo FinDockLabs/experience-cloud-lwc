@@ -6,10 +6,8 @@
 //
 // Or paste into Developer Console → Execute Anonymous → View Log → USER_DEBUG line.
 //
-// After running: fill in the `target` field for each entry — the merchant account name.
-// How to find it:
-//   - Native FinDock processors: check Targets[] in the GET /PaymentMethods response.
-//   - PSPs (PaymentHub-Stripe etc.): FinDock Setup → Processors & Methods → processor → Accounts tab.
+// The `target` field is optional — if left empty, FinDock uses the default merchant account
+// configured for that processor. Set it only if you need a non-default account.
 
 RestRequest req = new RestRequest();
 RestResponse res = new RestResponse();
@@ -57,7 +55,7 @@ for (Object m : methods) {
         config.add(new Map<String, Object>{
             'paymentMethod'      => methodName,
             'paymentProcessor'   => procName,
-            'target'             => 'TODO',
+            'target'             => '',
             'enabledOneTime'     => true,
             'enabledRecurring'   => supportsRecurring,
             'isDefaultOneTime'   => isFirst,
