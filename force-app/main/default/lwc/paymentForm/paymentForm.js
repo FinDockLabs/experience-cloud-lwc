@@ -133,8 +133,8 @@ export default class PaymentForm extends LightningElement {
                 }
             }),
             PaymentMethod: {
-                Name: this.selectedPaymentMethod?.name ?? 'CreditCard',
-                Processor: this.selectedPaymentMethod?.processor ?? 'DummyExtension-PSP',
+                Name: this.selectedPaymentMethod?.name,
+                Processor: this.selectedPaymentMethod?.processor,
                 Target: this.selectedPaymentMethod?.target
             }
         };
