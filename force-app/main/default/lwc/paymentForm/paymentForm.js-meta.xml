@@ -12,8 +12,6 @@
     </targets>
     <targetConfigs>
         <targetConfig targets="lightning__RecordPage,lightning__HomePage,lightningCommunity__Default">
-            <property name="screenMode" type="String" label="Screen Mode"
-                      description="Controls the screen layout." datasource="OneScreen, MultiScreen" default="OneScreen"/>
             <property name="currency" type="String" label="Currency"
                       description="ISO currency code shown in the amount picker (e.g. EUR, USD, GBP)." default="EUR"/>
             <property name="hideFrequency" type="Boolean" label="Hide Frequency Toggle"

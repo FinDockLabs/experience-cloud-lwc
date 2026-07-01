@@ -51,49 +51,7 @@
         <value>name@example.com</value>
     </labels>
 
-    <!-- Payment Form — navigation buttons -->
-    <labels>
-        <fullName>ec_label_back</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Back button label</shortDescription>
-        <value>Back</value>
-    </labels>
-    <labels>
-        <fullName>ec_label_next</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Next step button label</shortDescription>
-        <value>Next</value>
-    </labels>
-
     <!-- Payment Form — screen reader / assistive text -->
-    <labels>
-        <fullName>ec_sr_step_amount_frequency</fullName>
-        <categories>Accessibility</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Assistive heading for the Amount and Frequency step</shortDescription>
-        <value>Amount and Frequency</value>
-    </labels>
-    <labels>
-        <fullName>ec_sr_step_personal_info</fullName>
-        <categories>Accessibility</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Assistive heading for the Personal Information step</shortDescription>
-        <value>Personal Information</value>
-    </labels>
-    <labels>
-        <fullName>ec_sr_step_payment_method</fullName>
-        <categories>Accessibility</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Assistive heading for the Payment Method step</shortDescription>
-        <value>Payment Method</value>
-    </labels>
     <labels>
         <fullName>ec_sr_personal_info_group</fullName>
         <categories>Accessibility</categories>
@@ -101,14 +59,6 @@
         <protected>true</protected>
         <shortDescription>Fieldset legend for the personal information group</shortDescription>
         <value>Personal Information</value>
-    </labels>
-    <labels>
-        <fullName>ec_sr_progress_step_announcement</fullName>
-        <categories>Accessibility</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Step announcement: step number, total steps, step name</shortDescription>
-        <value>Step {0} of {1}: {2}</value>
     </labels>
 
     <!-- Payment Form — configuration errors -->

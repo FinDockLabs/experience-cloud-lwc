@@ -4,7 +4,6 @@ import { labels } from "./paymentFormLabels";
 
 export default class PaymentForm extends LightningElement {
     @api recordId;
-    @api screenMode = 'OneScreen'; // 'OneScreen' — all steps on one page; 'MultiScreen' — steps split across screens
     @api currency = 'EUR';
     @api hideFrequency = false;
     @api defaultFrequency = 'oneTime';
@@ -20,42 +19,13 @@ export default class PaymentForm extends LightningElement {
     @track amountRecurring = null;
     @track frequency = 'onetime';
     @track selectedPaymentMethod = null;
-    @track currentStep = 1;
 
     labels = labels;
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
-    _prevStep = 1;
 
     @track paymentIntent = {};
     @track paymentError = null;
     @track configError = null;
-
-    get isMultiScreen() {
-        return this.screenMode === 'MultiScreen';
-    }
-
-    get showAmountStep() {
-        return !this.isMultiScreen || this.currentStep === 1;
-    }
-
-    get showPersonalInfoStep() {
-        return !this.isMultiScreen || this.currentStep === 2;
-    }
-
-    get showPaymentStep() {
-        return !this.isMultiScreen || this.currentStep === 3;
-    }
-
-    get isStep1NextDisabled() {
-        const amount = this.frequency === 'recurring' ? this.amountRecurring : this.amountOneTime;
-        return !(amount && Number(amount) > 0);
-    }
-
-    get isStep2NextDisabled() {
-        const inputs = this.template.querySelectorAll('lightning-input');
-        const allInputsValid = [...inputs].every(input => input.checkValidity());
-        return !(this.firstName && this.lastName && this.email) || !allInputsValid;
-    }
 
     get isPayButtonDisabled() {
         const amount = this.frequency === 'recurring' ? this.amountRecurring : this.amountOneTime;
@@ -72,30 +42,8 @@ export default class PaymentForm extends LightningElement {
         );
     }
 
-    get stepAnnouncement() {
-        if (!this.isMultiScreen) return '';
-        const stepNames = [
-            this.labels.ec_sr_step_amount_frequency,
-            this.labels.ec_sr_step_personal_info,
-            this.labels.ec_sr_step_payment_method,
-        ];
-        const template = this.labels.ec_sr_progress_step_announcement;
-        return template
-            .replace('{0}', this.currentStep)
-            .replace('{1}', stepNames.length)
-            .replace('{2}', stepNames[this.currentStep - 1]);
-    }
-
     connectedCallback() {
         this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
-    }
-
-    renderedCallback() {
-        if (this.isMultiScreen && this._prevStep !== this.currentStep) {
-            this._prevStep = this.currentStep;
-            const heading = this.template.querySelector('[data-step-heading]');
-            if (heading) heading.focus();
-        }
     }
 
     handleFieldChange(event) {
@@ -141,14 +89,6 @@ export default class PaymentForm extends LightningElement {
 
     get paymentErrorJson() {
         return JSON.stringify(this.paymentError, null, 2);
-    }
-
-    handleNextStep() {
-        if (this.currentStep < 3) this.currentStep += 1;
-    }
-
-    handlePreviousStep() {
-        if (this.currentStep > 1) this.currentStep -= 1;
     }
 
     _updatePaymentIntentContext() {

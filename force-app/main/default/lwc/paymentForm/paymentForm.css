@@ -1,14 +1,3 @@
-.step-navigation {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 1rem;
-}
-
-.step-navigation-trailing {
-    margin-left: auto;
-}
-
 .visually-hidden {
     position: absolute;
     width: 1px;

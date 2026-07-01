@@ -3,7 +3,7 @@ import PaymentForm from 'c/paymentForm';
 
 function createComponent(props = {}) {
     const element = createElement('c-payment-form', { is: PaymentForm });
-    Object.assign(element, { screenMode: 'OneScreen', ...props });
+    Object.assign(element, props);
     document.body.appendChild(element);
     return element;
 }
@@ -14,36 +14,6 @@ function dispatchAmountFrequencyChange(element, detail) {
     );
 }
 
-function fillStep1(element, amount = 25) {
-    dispatchAmountFrequencyChange(element, {
-        amountOneTime: amount,
-        amountRecurring: null,
-        frequency: 'oneTime'
-    });
-}
-
-// Navigation buttons use data-id attributes since label is an LWC property, not an HTML attribute
-function getNextBtn(element) {
-    return element.shadowRoot.querySelector('lightning-button[data-id="next"]');
-}
-
-function getBackBtn(element) {
-    return element.shadowRoot.querySelector('lightning-button[data-id="back"]');
-}
-
-async function navigateToStep(element, targetStep) {
-    if (targetStep >= 2) {
-        fillStep1(element);
-        await Promise.resolve();
-        getNextBtn(element).click();
-        await Promise.resolve();
-    }
-    if (targetStep >= 3) {
-        getNextBtn(element).click();
-        await Promise.resolve();
-    }
-}
-
 afterEach(() => {
     while (document.body.firstChild) {
         document.body.removeChild(document.body.firstChild);
@@ -52,7 +22,7 @@ afterEach(() => {
 });
 
 describe('paymentForm', () => {
-    describe('OneScreen mode', () => {
+    describe('rendering', () => {
         it('renders all sections at once', () => {
             const element = createComponent();
             expect(element.shadowRoot.querySelector('c-amount-and-frequency')).not.toBeNull();
@@ -61,92 +31,23 @@ describe('paymentForm', () => {
             expect(element.shadowRoot.querySelector('cpm-pay-button')).not.toBeNull();
         });
 
-        it('does not render step navigation buttons', () => {
-            const element = createComponent();
-            expect(element.shadowRoot.querySelector('.step-navigation')).toBeNull();
-        });
-
-        it('does not render progress indicator', () => {
+        it('does not render a progress indicator', () => {
             const element = createComponent();
             expect(element.shadowRoot.querySelector('c-experience-progress-stages')).toBeNull();
         });
     });
 
-    describe('MultiScreen step navigation', () => {
-        it('shows only step 1 content initially', () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            expect(element.shadowRoot.querySelector('c-amount-and-frequency')).not.toBeNull();
-            expect(element.shadowRoot.querySelector('lightning-input')).toBeNull();
-            expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
-        });
-
-        it('renders progress indicator', () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            expect(element.shadowRoot.querySelector('c-experience-progress-stages')).not.toBeNull();
-        });
-
-        it('advances to step 2 after entering amount and clicking Next', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 2);
-            expect(element.shadowRoot.querySelector('lightning-input')).not.toBeNull();
-            expect(element.shadowRoot.querySelector('c-amount-and-frequency')).toBeNull();
-        });
-
-        it('advances to step 3 from step 2', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 3);
-            expect(element.shadowRoot.querySelector('c-payment-selector')).not.toBeNull();
-            expect(element.shadowRoot.querySelector('lightning-input')).toBeNull();
-        });
-
-        it('returns to step 1 after clicking Back on step 2', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 2);
-            getBackBtn(element).click();
-            await Promise.resolve();
-            expect(element.shadowRoot.querySelector('c-amount-and-frequency')).not.toBeNull();
-        });
-
-        it('returns to step 2 after clicking Back on step 3', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 3);
-            getBackBtn(element).click();
-            await Promise.resolve();
-            expect(element.shadowRoot.querySelector('lightning-input')).not.toBeNull();
-        });
-    });
-
-    describe('step 1 validation', () => {
-        it('Next button is disabled when no amount is entered', () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            expect(getNextBtn(element).disabled).toBe(true);
-        });
-
-        it('Next button is enabled after a valid amount is entered', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            fillStep1(element, 50);
-            await Promise.resolve();
-            expect(getNextBtn(element).disabled).toBe(false);
-        });
-
-        it('Next button remains disabled when amount is zero', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            fillStep1(element, 0);
-            await Promise.resolve();
-            expect(getNextBtn(element).disabled).toBe(true);
-        });
-    });
-
     describe('event handlers', () => {
-        it('handleAmountFrequencyChanged enables Next for a recurring amount', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
+        it('handleAmountFrequencyChanged updates the pay button state for a recurring amount', async () => {
+            const element = createComponent();
             dispatchAmountFrequencyChange(element, {
                 amountOneTime: null,
                 amountRecurring: 10,
                 frequency: 'recurring'
             });
             await Promise.resolve();
-            expect(getNextBtn(element).disabled).toBe(false);
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.paymentIntent.Recurring.Amount).toBe(10);
         });
 
         it('handleFieldChange updates the field bound to data-field', async () => {
@@ -200,61 +101,10 @@ describe('paymentForm', () => {
     });
 
     describe('accessibility structure', () => {
-        it('renders an aria-live region', () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            expect(element.shadowRoot.querySelector('[aria-live="polite"]')).not.toBeNull();
-        });
-
-        it('aria-live region is present in OneScreen mode and contains no announcement', () => {
-            const element = createComponent({ screenMode: 'OneScreen' });
-            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
-            expect(liveRegion).not.toBeNull();
-            expect(liveRegion.textContent).toBe('');
-        });
-
-        it('aria-live region announces step in MultiScreen mode', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await Promise.resolve();
-            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
-            expect(liveRegion.textContent).toContain('Step 1');
-        });
-
-        it('step 2 wraps inputs in a fieldset with legend', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 2);
+        it('personal information inputs are wrapped in a fieldset with legend', () => {
+            const element = createComponent();
             expect(element.shadowRoot.querySelector('fieldset')).not.toBeNull();
             expect(element.shadowRoot.querySelector('legend')).not.toBeNull();
-        });
-
-        it('renders a visually-hidden h2 heading as focus target for the current step', () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            const heading = element.shadowRoot.querySelector('[data-step-heading]');
-            expect(heading).not.toBeNull();
-            expect(heading.tagName.toLowerCase()).toBe('h2');
-        });
-
-        it('aria-live region contains step 1 announcement in MultiScreen mode', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await Promise.resolve();
-            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
-            expect(liveRegion.textContent).toContain('Step 1');
-            expect(liveRegion.textContent).toContain('Amount and Frequency');
-        });
-
-        it('aria-live region updates to step 2 announcement after navigation', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 2);
-            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
-            expect(liveRegion.textContent).toContain('Step 2');
-            expect(liveRegion.textContent).toContain('Personal Information');
-        });
-
-        it('aria-live region updates to step 3 announcement after navigation', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 3);
-            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
-            expect(liveRegion.textContent).toContain('Step 3');
-            expect(liveRegion.textContent).toContain('Payment Method');
         });
     });
 
@@ -275,18 +125,6 @@ describe('paymentForm', () => {
             const element = createComponent();
             const emailInput = element.shadowRoot.querySelector('lightning-input[data-field="email"]');
             expect(emailInput.label).toBe('Email Address');
-        });
-
-        it('renders Next label on the step navigation button in MultiScreen mode', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await Promise.resolve();
-            expect(getNextBtn(element).label).toBe('Next');
-        });
-
-        it('renders Back label on the back navigation button in MultiScreen step 2', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 2);
-            expect(getBackBtn(element).label).toBe('Back');
         });
     });
 
