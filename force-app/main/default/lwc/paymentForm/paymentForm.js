@@ -1,5 +1,6 @@
 import { api, LightningElement, track } from "lwc";
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
+import { labels } from "./paymentFormLabels";
 
 export default class PaymentForm extends LightningElement {
     @api recordId;
@@ -21,10 +22,13 @@ export default class PaymentForm extends LightningElement {
     @track selectedPaymentMethod = null;
     @track currentStep = 1;
 
+    labels = labels;
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
     _prevStep = 1;
 
     @track paymentIntent = {};
+    @track paymentError = null;
+    @track configError = null;
 
     get isMultiScreen() {
         return this.screenMode === 'MultiScreen';
@@ -70,8 +74,20 @@ export default class PaymentForm extends LightningElement {
 
     get stepAnnouncement() {
         if (!this.isMultiScreen) return '';
-        const labels = ['Amount and Frequency', 'Personal Information', 'Payment Method'];
-        return `Step ${this.currentStep} of 3: ${labels[this.currentStep - 1]}`;
+        const stepNames = [
+            this.labels.ec_sr_step_amount_frequency,
+            this.labels.ec_sr_step_personal_info,
+            this.labels.ec_sr_step_payment_method,
+        ];
+        const template = this.labels.ec_sr_progress_step_announcement;
+        return template
+            .replace('{0}', this.currentStep)
+            .replace('{1}', stepNames.length)
+            .replace('{2}', stepNames[this.currentStep - 1]);
+    }
+
+    connectedCallback() {
+        this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
     }
 
     renderedCallback() {
@@ -97,6 +113,34 @@ export default class PaymentForm extends LightningElement {
     handlePaymentMethodChanged(event) {
         this.selectedPaymentMethod = event.detail;
         this._updatePaymentIntentContext();
+    }
+
+    _validateConfig(config) {
+        if (!Array.isArray(config)) {
+            return this.labels.ec_error_config_invalid;
+        }
+        if (config.length === 0) {
+            return this.labels.ec_error_config_empty;
+        }
+        for (const entry of config) {
+            for (const field of ['paymentMethod', 'paymentProcessor']) {
+                if (!entry[field]) {
+                    return this.labels.ec_error_config_missing_field.replace('{0}', field);
+                }
+            }
+        }
+        return null;
+    }
+
+    handlePaymentResult(event) {
+        const result = event.detail;
+        if (result?.errorMessage || result?.statusCode) {
+            this.paymentError = result;
+        }
+    }
+
+    get paymentErrorJson() {
+        return JSON.stringify(this.paymentError, null, 2);
     }
 
     handleNextStep() {
@@ -133,8 +177,8 @@ export default class PaymentForm extends LightningElement {
                 }
             }),
             PaymentMethod: {
-                Name: this.selectedPaymentMethod?.name ?? 'CreditCard',
-                Processor: this.selectedPaymentMethod?.processor ?? 'DummyExtension-PSP',
+                Name: this.selectedPaymentMethod?.name,
+                Processor: this.selectedPaymentMethod?.processor,
                 Target: this.selectedPaymentMethod?.target
             }
         };

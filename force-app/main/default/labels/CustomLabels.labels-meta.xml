@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+
+    <!-- Payment Form — field labels -->
+    <labels>
+        <fullName>ec_label_first_name</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>First name field label</shortDescription>
+        <value>First Name</value>
+    </labels>
+    <labels>
+        <fullName>ec_label_last_name</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Last name field label</shortDescription>
+        <value>Last Name</value>
+    </labels>
+    <labels>
+        <fullName>ec_label_email_address</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Email address field label</shortDescription>
+        <value>Email Address</value>
+    </labels>
+    <labels>
+        <fullName>ec_placeholder_first_name</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>First name field placeholder</shortDescription>
+        <value>First name</value>
+    </labels>
+    <labels>
+        <fullName>ec_placeholder_last_name</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Last name field placeholder</shortDescription>
+        <value>Last name</value>
+    </labels>
+    <labels>
+        <fullName>ec_placeholder_email</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Email field placeholder</shortDescription>
+        <value>name@example.com</value>
+    </labels>
+
+    <!-- Payment Form — navigation buttons -->
+    <labels>
+        <fullName>ec_label_back</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Back button label</shortDescription>
+        <value>Back</value>
+    </labels>
+    <labels>
+        <fullName>ec_label_next</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Next step button label</shortDescription>
+        <value>Next</value>
+    </labels>
+
+    <!-- Payment Form — screen reader / assistive text -->
+    <labels>
+        <fullName>ec_sr_step_amount_frequency</fullName>
+        <categories>Accessibility</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Assistive heading for the Amount and Frequency step</shortDescription>
+        <value>Amount and Frequency</value>
+    </labels>
+    <labels>
+        <fullName>ec_sr_step_personal_info</fullName>
+        <categories>Accessibility</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Assistive heading for the Personal Information step</shortDescription>
+        <value>Personal Information</value>
+    </labels>
+    <labels>
+        <fullName>ec_sr_step_payment_method</fullName>
+        <categories>Accessibility</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Assistive heading for the Payment Method step</shortDescription>
+        <value>Payment Method</value>
+    </labels>
+    <labels>
+        <fullName>ec_sr_personal_info_group</fullName>
+        <categories>Accessibility</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Fieldset legend for the personal information group</shortDescription>
+        <value>Personal Information</value>
+    </labels>
+    <labels>
+        <fullName>ec_sr_progress_step_announcement</fullName>
+        <categories>Accessibility</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Step announcement: step number, total steps, step name</shortDescription>
+        <value>Step {0} of {1}: {2}</value>
+    </labels>
+
+    <!-- Payment Form — configuration errors -->
+    <labels>
+        <fullName>ec_error_config_invalid</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Error shown when paymentMethodConfiguration.js has invalid structure</shortDescription>
+        <value>Payment method configuration is invalid. Check the browser console for details.</value>
+    </labels>
+    <labels>
+        <fullName>ec_error_config_empty</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Error shown when no payment methods are available after filtering</shortDescription>
+        <value>No payment methods are configured. Add at least one entry to paymentMethodConfiguration.js.</value>
+    </labels>
+    <labels>
+        <fullName>ec_error_config_missing_field</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Error shown when a config entry is missing a required field</shortDescription>
+        <value>Payment method configuration entry is missing required field: {0}. Check paymentMethodConfiguration.js.</value>
+    </labels>
+
+    <!-- Debug -->
+    <labels>
+        <fullName>ec_debug_error_title</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Title of the temporary debug error panel</shortDescription>
+        <value>Payment Error (debug)</value>
+    </labels>
+    <labels>
+        <fullName>ec_debug_config_error_title</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Title of the configuration error debug panel</shortDescription>
+        <value>Configuration Error (debug)</value>
+    </labels>
+
+</CustomLabels>
