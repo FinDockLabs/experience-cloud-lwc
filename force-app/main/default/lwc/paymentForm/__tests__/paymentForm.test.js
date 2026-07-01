@@ -232,5 +232,110 @@ describe('paymentForm', () => {
             expect(heading).not.toBeNull();
             expect(heading.tagName.toLowerCase()).toBe('h2');
         });
+
+        it('aria-live region contains step 1 announcement in MultiScreen mode', async () => {
+            const element = createComponent({ screenMode: 'MultiScreen' });
+            await Promise.resolve();
+            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
+            expect(liveRegion.textContent).toContain('Step 1');
+            expect(liveRegion.textContent).toContain('Amount and Frequency');
+        });
+
+        it('aria-live region updates to step 2 announcement after navigation', async () => {
+            const element = createComponent({ screenMode: 'MultiScreen' });
+            await navigateToStep(element, 2);
+            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
+            expect(liveRegion.textContent).toContain('Step 2');
+            expect(liveRegion.textContent).toContain('Personal Information');
+        });
+
+        it('aria-live region updates to step 3 announcement after navigation', async () => {
+            const element = createComponent({ screenMode: 'MultiScreen' });
+            await navigateToStep(element, 3);
+            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
+            expect(liveRegion.textContent).toContain('Step 3');
+            expect(liveRegion.textContent).toContain('Payment Method');
+        });
+    });
+
+    describe('label rendering', () => {
+        it('renders First Name label on the first input', () => {
+            const element = createComponent();
+            const firstNameInput = element.shadowRoot.querySelector('lightning-input[data-field="firstName"]');
+            expect(firstNameInput.label).toBe('First Name');
+        });
+
+        it('renders Last Name label on the second input', () => {
+            const element = createComponent();
+            const lastNameInput = element.shadowRoot.querySelector('lightning-input[data-field="lastName"]');
+            expect(lastNameInput.label).toBe('Last Name');
+        });
+
+        it('renders Email Address label on the email input', () => {
+            const element = createComponent();
+            const emailInput = element.shadowRoot.querySelector('lightning-input[data-field="email"]');
+            expect(emailInput.label).toBe('Email Address');
+        });
+
+        it('renders Next label on the step navigation button in MultiScreen mode', async () => {
+            const element = createComponent({ screenMode: 'MultiScreen' });
+            await Promise.resolve();
+            expect(getNextBtn(element).label).toBe('Next');
+        });
+
+        it('renders Back label on the back navigation button in MultiScreen step 2', async () => {
+            const element = createComponent({ screenMode: 'MultiScreen' });
+            await navigateToStep(element, 2);
+            expect(getBackBtn(element).label).toBe('Back');
+        });
+    });
+
+    describe('payment intent context', () => {
+        it('passes updated payment intent to cpm-pay-button when fields change', async () => {
+            const element = createComponent();
+            dispatchAmountFrequencyChange(element, {
+                amountOneTime: 50,
+                amountRecurring: null,
+                frequency: 'oneTime'
+            });
+            element.shadowRoot.querySelector('lightning-input[data-field="firstName"]').dispatchEvent(
+                new CustomEvent('change', { detail: { value: 'Jane' } })
+            );
+            element.shadowRoot.querySelector('lightning-input[data-field="lastName"]').dispatchEvent(
+                new CustomEvent('change', { detail: { value: 'Doe' } })
+            );
+            element.shadowRoot.querySelector('lightning-input[data-field="email"]').dispatchEvent(
+                new CustomEvent('change', { detail: { value: 'jane@example.com' } })
+            );
+            await Promise.resolve();
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.paymentIntent.Payer.Contact.SalesforceFields.FirstName).toBe('Jane');
+            expect(payBtn.paymentIntent.Payer.Contact.SalesforceFields.LastName).toBe('Doe');
+            expect(payBtn.paymentIntent.OneTime.Amount).toBe(50);
+        });
+
+        it('sets Recurring amount in payment intent when frequency is recurring', async () => {
+            const element = createComponent();
+            dispatchAmountFrequencyChange(element, {
+                amountOneTime: null,
+                amountRecurring: 15,
+                frequency: 'recurring'
+            });
+            await Promise.resolve();
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.paymentIntent.Recurring.Amount).toBe(15);
+            expect(payBtn.paymentIntent.OneTime).toBeUndefined();
+        });
+
+        it('passes currency to payment intent', async () => {
+            const element = createComponent({ currency: 'USD' });
+            dispatchAmountFrequencyChange(element, {
+                amountOneTime: 10,
+                amountRecurring: null,
+                frequency: 'oneTime'
+            });
+            await Promise.resolve();
+            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.OneTime.CurrencyISOCode).toBe('USD');
+        });
     });
 });
