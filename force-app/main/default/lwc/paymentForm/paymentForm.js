@@ -2,41 +2,46 @@ import { api, LightningElement, track } from "lwc";
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
 
+const FREQUENCY_OPTIONS = [
+    { label: labels.ec_label_frequency_one_time, value: 'oneTime' },
+    { label: labels.ec_label_frequency_recurring, value: 'recurring' }
+];
+
 export default class PaymentForm extends LightningElement {
     @api recordId;
     @api currency = 'EUR';
-    @api hideFrequency = false;
+    @api amount;
+    @api showFrequency;
     @api defaultFrequency = 'oneTime';
-
-    get showFrequency() {
-        return !this.hideFrequency;
-    }
 
     @track firstName = '';
     @track lastName = '';
     @track email = '';
-    @track amountOneTime = null;
-    @track amountRecurring = null;
-    @track frequency = 'onetime';
+    @track amountValue = null;
+    @track frequency = 'oneTime';
     @track selectedPaymentMethod = null;
 
     labels = labels;
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
+    frequencyOptions = FREQUENCY_OPTIONS;
 
     @track paymentIntent = {};
     @track paymentError = null;
     @track configError = null;
 
+    get shouldShowFrequency() {
+        return this.showFrequency !== false;
+    }
+
     get isPayButtonDisabled() {
-        const amount = this.frequency === 'recurring' ? this.amountRecurring : this.amountOneTime;
         const inputs = this.template.querySelectorAll('lightning-input');
         const allInputsValid = [...inputs].every(input => input.checkValidity());
         return !(
             this.firstName &&
             this.lastName &&
             this.email &&
-            amount &&
-            Number(amount) > 0 &&
+            this.amountValue &&
+            Number(this.amountValue) > 0 &&
             this.selectedPaymentMethod &&
             allInputsValid
         );
@@ -44,17 +49,12 @@ export default class PaymentForm extends LightningElement {
 
     connectedCallback() {
         this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
+        this.amountValue = this.amount ?? null;
+        this.frequency = this.defaultFrequency ?? 'oneTime';
     }
 
     handleFieldChange(event) {
         this[event.target.dataset.field] = event.detail.value;
-        this._updatePaymentIntentContext();
-    }
-
-    handleAmountFrequencyChanged(event) {
-        this.amountOneTime = event.detail.amountOneTime;
-        this.amountRecurring = event.detail.amountRecurring;
-        this.frequency = event.detail.frequency;
         this._updatePaymentIntentContext();
     }
 
@@ -107,12 +107,12 @@ export default class PaymentForm extends LightningElement {
             },
             ...(isRecurring ? {
                 Recurring: {
-                    Amount: this.amountRecurring,
+                    Amount: this.amountValue,
                     CurrencyISOCode: this.currency
                 }
             } : {
                 OneTime: {
-                    Amount: this.amountOneTime,
+                    Amount: this.amountValue,
                     CurrencyISOCode: this.currency
                 }
             }),

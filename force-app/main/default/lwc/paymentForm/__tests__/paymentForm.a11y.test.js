@@ -45,11 +45,11 @@ describe('c-payment-form WCAG 2.2 AA accessibility', () => {
         await expect(element).toBeAccessible();
     });
 
-    // ── 3. hideFrequency=true — no frequency toggle visible ──────────────────────
+    // ── 3. showFrequency=false — no frequency toggle visible ─────────────────────
     // Covers: WCAG 1.3.1 Info and Relationships
     // Hiding the frequency toggle should not introduce broken ARIA relationships.
     it('passes axe scan when frequency toggle is hidden', async () => {
-        const element = createComponent({ hideFrequency: true });
+        const element = createComponent({ showFrequency: false });
         await Promise.resolve();
         await expect(element).toBeAccessible();
     });
