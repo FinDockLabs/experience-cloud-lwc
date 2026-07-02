@@ -1,7 +1,9 @@
 import { api, LightningElement, track } from "lwc";
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
+import LOCALE from '@salesforce/i18n/locale';
 
+// Ensures unique radio `name`/id attributes when multiple payment forms are on the same page.
 let _nextInstanceId = 0;
 
 export default class PaymentForm extends LightningElement {
@@ -14,7 +16,7 @@ export default class PaymentForm extends LightningElement {
     @track firstName = '';
     @track lastName = '';
     @track email = '';
-    @track amountValue = null;
+    @track amountValue = '';
     @track frequency = 'oneTime';
     @track selectedPaymentMethod = null;
     @track paymentIntent = {};
@@ -24,9 +26,56 @@ export default class PaymentForm extends LightningElement {
     labels = labels;
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
     _instanceId = ++_nextInstanceId;
+    _initialAmountFormatted = false;
 
     get shouldShowFrequency() {
         return this.showFrequency !== false;
+    }
+
+    get _currencyFormatInfo() {
+        try {
+            const parts = new Intl.NumberFormat(LOCALE, {
+                style: 'currency',
+                currency: this.currency,
+                currencyDisplay: 'narrowSymbol'
+            }).formatToParts(1);
+            const currencyIndex = parts.findIndex(part => part.type === 'currency');
+            const integerIndex = parts.findIndex(part => part.type === 'integer');
+            const currencyPart = parts[currencyIndex];
+            return {
+                symbol: currencyPart ? currencyPart.value : this.currency,
+                isBefore: currencyIndex !== -1 && currencyIndex < integerIndex
+            };
+        } catch {
+            return { symbol: this.currency, isBefore: true };
+        }
+    }
+
+    get currencySymbol() {
+        return this._currencyFormatInfo.symbol;
+    }
+
+    get symbolBefore() {
+        return this._currencyFormatInfo.isBefore;
+    }
+
+    get symbolAfter() {
+        return !this._currencyFormatInfo.isBefore;
+    }
+
+    get _currencyDecimals() {
+        try {
+            return new Intl.NumberFormat(LOCALE, {
+                style: 'currency',
+                currency: this.currency
+            }).resolvedOptions().maximumFractionDigits;
+        } catch {
+            return 2;
+        }
+    }
+
+    get amountInputId() {
+        return `payment-form-amount-${this._instanceId}`;
     }
 
     get frequencyGroupName() {
@@ -67,9 +116,18 @@ export default class PaymentForm extends LightningElement {
         return JSON.stringify(this.paymentError, null, 2);
     }
 
+    renderedCallback() {
+        if (this._initialAmountFormatted) return;
+        this._initialAmountFormatted = true;
+        const input = this.template.querySelector('.slds-input');
+        if (input) {
+            this._formatAmountDisplay(input);
+        }
+    }
+
     connectedCallback() {
         this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
-        this.amountValue = this.amount ?? null;
+        this.amountValue = this.amount != null ? String(this.amount) : '';
         this.frequency = this.defaultFrequency ?? 'oneTime';
     }
 
@@ -126,6 +184,43 @@ export default class PaymentForm extends LightningElement {
     handleFieldChange(event) {
         this[event.target.dataset.field] = event.detail.value;
         this._updatePaymentIntentContext();
+    }
+
+    handleAmountInput(event) {
+        let value = event.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
+        const firstDot = value.indexOf('.');
+        if (firstDot !== -1) {
+            value = value.substring(0, firstDot + 1) + value.substring(firstDot + 1).replace(/\./g, '');
+        }
+        const decimals = this._currencyDecimals;
+        const dotIndex = value.indexOf('.');
+        if (decimals === 0 && dotIndex !== -1) {
+            value = value.substring(0, dotIndex);
+        } else if (decimals > 0 && dotIndex !== -1 && value.length - dotIndex - 1 > decimals) {
+            value = value.substring(0, dotIndex + decimals + 1);
+        }
+        event.target.value = value;
+        this.amountValue = value;
+        this._updatePaymentIntentContext();
+    }
+
+    _formatAmountDisplay(inputEl) {
+        if (this.amountValue === '') return;
+        const numeric = Number(this.amountValue);
+        if (!Number.isFinite(numeric)) return;
+        inputEl.value = new Intl.NumberFormat(LOCALE, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: this._currencyDecimals
+        }).format(numeric);
+    }
+
+    handleAmountBlur(event) {
+        this._formatAmountDisplay(event.target);
+    }
+
+    // Swap back to the raw, unformatted value so grouping separators don't interfere with typing.
+    handleAmountFocus(event) {
+        event.target.value = this.amountValue;
     }
 
     handleFrequencyChange(event) {

@@ -16,23 +16,23 @@
                     <label class="slds-form-element__label" for={amountInputId}>
                         <abbr class="slds-required" title="required">*</abbr>{labels.ec_label_amount}
                     </label>
-                    <div class="slds-form-element__control">
-                        <div class="custom-amount-row">
-                            <template lwc:if={isCurrencyPrefix}>
-                                <span class="currency-adornment currency-adornment-prefix" aria-hidden="true">{currencySymbol}</span>
-                            </template>
-                            <input type="text"
-                                   inputmode="decimal"
-                                   autocomplete="transaction-amount"
-                                   id={amountInputId}
-                                   class="custom-amount-input-native"
-                                   value={amountValue}
-                                   required
-                                   oninput={handleAmountInput} />
-                            <template lwc:if={isCurrencySuffix}>
-                                <span class="currency-adornment currency-adornment-suffix" aria-hidden="true">{currencySymbol}</span>
-                            </template>
-                        </div>
+                    <div class="slds-form-element__control slds-input-has-fixed-addon">
+                        <template lwc:if={symbolBefore}>
+                            <span class="slds-form-element__addon">{currencySymbol}</span>
+                        </template>
+                        <input type="text"
+                               inputmode="decimal"
+                               autocomplete="transaction-amount"
+                               id={amountInputId}
+                               class="slds-input"
+                               value={amountValue}
+                               required
+                               oninput={handleAmountInput}
+                               onblur={handleAmountBlur}
+                               onfocus={handleAmountFocus} />
+                        <template lwc:if={symbolAfter}>
+                            <span class="slds-form-element__addon">{currencySymbol}</span>
+                        </template>
                     </div>
                 </div>
                 <template lwc:if={shouldShowFrequency}>
