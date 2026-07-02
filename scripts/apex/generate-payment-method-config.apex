@@ -9,6 +9,20 @@
 // The `target` field is optional — if left empty, FinDock uses the default merchant account
 // configured for that processor. Set it only if you need a non-default account.
 
+// Wraps a config entry so the list can be sorted by paymentProcessor, then paymentMethod.
+public class ConfigEntry implements Comparable {
+    public Map<String, Object> data;
+    public ConfigEntry(Map<String, Object> data) {
+        this.data = data;
+    }
+    public Integer compareTo(Object other) {
+        Map<String, Object> otherData = ((ConfigEntry) other).data;
+        Integer byProcessor = ((String) data.get('paymentProcessor')).compareTo((String) otherData.get('paymentProcessor'));
+        if (byProcessor != 0) return byProcessor;
+        return ((String) data.get('paymentMethod')).compareTo((String) otherData.get('paymentMethod'));
+    }
+}
+
 RestRequest req = new RestRequest();
 RestResponse res = new RestResponse();
 RestContext.request = req;
@@ -21,8 +35,7 @@ cpm.API_PaymentMethod_V2.getPaymentMethods();
 Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
 List<Object> methods = (List<Object>) body.get('PaymentMethods');
 
-List<Object> config = new List<Object>();
-Boolean isFirst = true;
+List<ConfigEntry> entries = new List<ConfigEntry>();
 
 for (Object m : methods) {
     Map<String, Object> method = (Map<String, Object>) m;
@@ -52,20 +65,35 @@ for (Object m : methods) {
             }
         }
 
-        config.add(new Map<String, Object>{
+        entries.add(new ConfigEntry(new Map<String, Object>{
             'paymentMethod'      => methodName,
             'paymentProcessor'   => procName,
             'target'             => '',
             'enabledOneTime'     => true,
             'enabledRecurring'   => supportsRecurring,
-            'isDefaultOneTime'   => isFirst,
-            'isDefaultRecurring' => isFirst && supportsRecurring,
+            'isDefaultOneTime'   => false,
+            'isDefaultRecurring' => false,
             'supportsRecurring'  => supportsRecurring,
             'displayLabel'       => methodName,
             'parameters'         => params.isEmpty() ? null : params
-        });
-        isFirst = false;
+        }));
     }
+}
+
+// Sort by paymentProcessor first, then paymentMethod, so entries for the same processor
+// stay grouped together
+entries.sort();
+
+List<Object> config = new List<Object>();
+for (ConfigEntry entry : entries) {
+    config.add(entry.data);
+}
+
+// The first entry in the sorted list becomes the default selection.
+if (!config.isEmpty()) {
+    Map<String, Object> firstEntry = (Map<String, Object>) config[0];
+    firstEntry.put('isDefaultOneTime', true);
+    firstEntry.put('isDefaultRecurring', firstEntry.get('supportsRecurring') == true);
 }
 
 // Single-line output with marker — extracted by generate-payment-config.mjs
