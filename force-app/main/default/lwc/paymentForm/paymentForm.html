@@ -54,7 +54,14 @@
                                class="visually-hidden"
                                checked={isRecurringFrequencySelected}
                                onchange={handleFrequencyChange} />
-                        <label for={recurringFrequencyId} class="toggle-option">{labels.ec_label_frequency_recurring}</label>
+                        <label for={recurringFrequencyId} class="toggle-option">
+                            <lightning-icon icon-name="utility:heart"
+                                            size="x-small"
+                                            class="monthly-icon"
+                                            aria-hidden="true">
+                            </lightning-icon>
+                            {labels.ec_label_frequency_recurring}
+                        </label>
                     </fieldset>
                 </template>
             </fieldset>

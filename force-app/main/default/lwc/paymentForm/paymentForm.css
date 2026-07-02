@@ -45,7 +45,12 @@
     color: var(--dxp-s-form-element-text-color, var(--dxp-g-root-contrast-color, var(--slds-g-color-neutral-base-30)));
     letter-spacing: var(--dxp-s-form-element-text-letter-spacing, normal);
     cursor: pointer;
+    gap: var(--slds-g-spacing-2);
     transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.monthly-icon {
+    --slds-c-icon-color-foreground-default: var(--slds-g-color-error-base-50);
 }
 
 /* Subtle hover tint, theme-aware, distinct from the selected state */
