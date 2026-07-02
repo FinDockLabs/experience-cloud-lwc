@@ -54,6 +54,9 @@
  *   isDefaultRecurring  Pre-select for recurring. Exactly one enabledRecurring entry should be true.
  *   supportsRecurring   Whether the processor supports recurring for this method.
  *                       Source: PaymentMethods[].Processors[].SupportsRecurring.
+ *                       Not a duplicate of enabledRecurring: the managed selector filters
+ *                       recurring-tab methods with `supportsRecurring && enabledRecurring`,
+ *                       so this guards against enabledRecurring being set true by mistake.
  *   displayLabel        Label shown to the payer. Defaults to paymentMethod when omitted.
  *   redirectInstruction Message shown before PSP redirect (e.g. iDEAL, Bancontact).
  *

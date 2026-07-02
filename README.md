@@ -97,6 +97,8 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 | `redirectInstruction` | Message shown before PSP redirect (e.g. for iDEAL, Bancontact). Omit when there is no redirect. |
 | `parameters` | Array of additional processor parameters (e.g. `locale`, `description`). `null` or omit when none. Each entry: `name`, `value`, `visibleToCustomer`, `displayLabel`, `required`, `data_type`, `description`. |
 
+`supportsRecurring` is not a duplicate of `enabledRecurring`: the former is the processor's technical capability, the latter is the admin's choice to offer the method. The managed `cpm-payment-method-selector` filters recurring-tab methods with `supportsRecurring && enabledRecurring`, so it acts as a runtime guard — if `enabledRecurring` is mistakenly set `true` on a method that doesn't actually support recurring, the method still won't appear on the recurring tab. Keep both fields consistent per the constraint above rather than relying on only one.
+
 ## How it works
 
 `c-payment-form` assembles the PaymentIntent reactively from form state (amount, frequency, personal info, selected payment method) and passes the whole object to `cpm-pay-button` via the `payment-intent` property. The managed Pay Button calls `cpm.API_PaymentIntent_V2.postPaymentIntent()` in-transaction and handles the PSP redirect — no custom Apex controller is needed.
