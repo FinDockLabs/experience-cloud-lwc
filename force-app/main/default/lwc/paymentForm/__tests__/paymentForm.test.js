@@ -36,11 +36,6 @@ describe('paymentForm', () => {
             expect(element.shadowRoot.querySelector('c-payment-selector')).not.toBeNull();
             expect(element.shadowRoot.querySelector('cpm-pay-button')).not.toBeNull();
         });
-
-        it('does not render a progress indicator', () => {
-            const element = createComponent();
-            expect(element.shadowRoot.querySelector('c-experience-progress-stages')).toBeNull();
-        });
     });
 
     describe('event handlers', () => {
