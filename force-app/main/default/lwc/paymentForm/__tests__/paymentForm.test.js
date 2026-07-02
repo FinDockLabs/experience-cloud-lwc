@@ -296,5 +296,15 @@ describe('paymentForm', () => {
             await Promise.resolve();
             expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.Recurring.Frequency).toBe('Monthly');
         });
+
+        it('sets Recurring.StartDate to today in yyyy-mm-dd format', async () => {
+            const element = createComponent();
+            setFrequency(element, 'recurring');
+            typeAmount(element, '15');
+            await Promise.resolve();
+            const today = new Date();
+            const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.Recurring.StartDate).toBe(expected);
+        });
     });
 });

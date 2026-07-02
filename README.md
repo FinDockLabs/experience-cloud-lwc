@@ -28,6 +28,9 @@ Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only c
 today. There's no `Monthly`/`Weekly`/etc. picker; the toggle is a fixed **One-time / Monthly**
 choice. Add a configurable frequency property if another cadence is needed later.
 
+`Recurring.StartDate` is also required by the Payment API and is sent as today's date
+(`yyyy-mm-dd`, payer's local time) — there's no start-date picker on the form today.
+
 ### `c-payment-selector` — API
 
 Use `c-payment-selector` directly when you want only the payment method selector in a custom LWC form, without the full `c-payment-form` wrapper.
