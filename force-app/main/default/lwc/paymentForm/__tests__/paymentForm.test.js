@@ -15,8 +15,8 @@ function setAmount(element, value) {
 }
 
 function setFrequency(element, value) {
-    element.shadowRoot.querySelector('lightning-radio-group[data-field="frequency"]').dispatchEvent(
-        new CustomEvent('change', { detail: { value } })
+    element.shadowRoot.querySelector(`input[type="radio"][value="${value}"]`).dispatchEvent(
+        new CustomEvent('change')
     );
 }
 
@@ -75,18 +75,18 @@ describe('paymentForm', () => {
     describe('frequency toggle', () => {
         it('hides the frequency selector when showFrequency is false', () => {
             const element = createComponent({ showFrequency: false });
-            expect(element.shadowRoot.querySelector('lightning-radio-group[data-field="frequency"]')).toBeNull();
+            expect(element.shadowRoot.querySelector('.frequency-toggle')).toBeNull();
         });
 
         it('shows the frequency selector when showFrequency is true', () => {
             const element = createComponent({ showFrequency: true });
-            expect(element.shadowRoot.querySelector('lightning-radio-group[data-field="frequency"]')).not.toBeNull();
+            expect(element.shadowRoot.querySelector('.frequency-toggle')).not.toBeNull();
         });
 
         it('pre-selects defaultFrequency when the form loads', () => {
             const element = createComponent({ defaultFrequency: 'recurring' });
-            const frequencyInput = element.shadowRoot.querySelector('lightning-radio-group[data-field="frequency"]');
-            expect(frequencyInput.value).toBe('recurring');
+            expect(element.shadowRoot.querySelector('input[value="recurring"]').checked).toBe(true);
+            expect(element.shadowRoot.querySelector('input[value="oneTime"]').checked).toBe(false);
         });
     });
 
@@ -101,8 +101,8 @@ describe('paymentForm', () => {
     describe('accessibility structure', () => {
         it('personal information inputs are wrapped in a fieldset with legend', () => {
             const element = createComponent();
-            expect(element.shadowRoot.querySelectorAll('fieldset')).toHaveLength(2);
-            expect(element.shadowRoot.querySelectorAll('legend')).toHaveLength(2);
+            expect(element.shadowRoot.querySelectorAll('fieldset')).toHaveLength(3);
+            expect(element.shadowRoot.querySelectorAll('legend')).toHaveLength(3);
         });
     });
 

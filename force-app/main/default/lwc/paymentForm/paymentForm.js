@@ -2,10 +2,7 @@ import { api, LightningElement, track } from "lwc";
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
 
-const FREQUENCY_OPTIONS = [
-    { label: labels.ec_label_frequency_one_time, value: 'oneTime' },
-    { label: labels.ec_label_frequency_recurring, value: 'recurring' }
-];
+let _nextInstanceId = 0;
 
 export default class PaymentForm extends LightningElement {
     @api recordId;
@@ -26,10 +23,30 @@ export default class PaymentForm extends LightningElement {
 
     labels = labels;
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
-    frequencyOptions = FREQUENCY_OPTIONS;
+    _instanceId = ++_nextInstanceId;
 
     get shouldShowFrequency() {
         return this.showFrequency !== false;
+    }
+
+    get frequencyGroupName() {
+        return `payment-form-frequency-${this._instanceId}`;
+    }
+
+    get oneTimeFrequencyId() {
+        return `payment-form-frequency-onetime-${this._instanceId}`;
+    }
+
+    get recurringFrequencyId() {
+        return `payment-form-frequency-recurring-${this._instanceId}`;
+    }
+
+    get isOneTimeFrequencySelected() {
+        return this.frequency === 'oneTime';
+    }
+
+    get isRecurringFrequencySelected() {
+        return this.frequency === 'recurring';
     }
 
     get isPayButtonDisabled() {
@@ -108,6 +125,11 @@ export default class PaymentForm extends LightningElement {
 
     handleFieldChange(event) {
         this[event.target.dataset.field] = event.detail.value;
+        this._updatePaymentIntentContext();
+    }
+
+    handleFrequencyChange(event) {
+        this.frequency = event.target.value;
         this._updatePaymentIntentContext();
     }
 

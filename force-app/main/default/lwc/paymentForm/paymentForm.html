@@ -12,24 +12,50 @@
 
             <fieldset class="form-section slds-form slds-form_stacked">
                 <legend class="visually-hidden">{labels.ec_sr_amount_group}</legend>
-                <lightning-input type="number"
-                                 formatter="currency"
-                                 step="0.01"
-                                 label={labels.ec_label_amount}
-                                 value={amountValue}
-                                 data-field="amountValue"
-                                 required
-                                 onchange={handleFieldChange}>
-                </lightning-input>
+                <div class="slds-form-element">
+                    <label class="slds-form-element__label" for={amountInputId}>
+                        <abbr class="slds-required" title="required">*</abbr>{labels.ec_label_amount}
+                    </label>
+                    <div class="slds-form-element__control">
+                        <div class="custom-amount-row">
+                            <template lwc:if={isCurrencyPrefix}>
+                                <span class="currency-adornment currency-adornment-prefix" aria-hidden="true">{currencySymbol}</span>
+                            </template>
+                            <input type="text"
+                                   inputmode="decimal"
+                                   autocomplete="transaction-amount"
+                                   id={amountInputId}
+                                   class="custom-amount-input-native"
+                                   value={amountValue}
+                                   required
+                                   oninput={handleAmountInput} />
+                            <template lwc:if={isCurrencySuffix}>
+                                <span class="currency-adornment currency-adornment-suffix" aria-hidden="true">{currencySymbol}</span>
+                            </template>
+                        </div>
+                    </div>
+                </div>
                 <template lwc:if={shouldShowFrequency}>
-                    <lightning-radio-group
-                        label={labels.ec_label_frequency}
-                        options={frequencyOptions}
-                        value={frequency}
-                        type="radio"
-                        data-field="frequency"
-                        onchange={handleFieldChange}>
-                    </lightning-radio-group>
+                    <fieldset class="frequency-toggle">
+                        <legend class="visually-hidden">{labels.ec_label_frequency}</legend>
+                        <input type="radio"
+                               id={oneTimeFrequencyId}
+                               name={frequencyGroupName}
+                               value="oneTime"
+                               class="visually-hidden"
+                               checked={isOneTimeFrequencySelected}
+                               onchange={handleFrequencyChange} />
+                        <label for={oneTimeFrequencyId} class="toggle-option">{labels.ec_label_frequency_one_time}</label>
+
+                        <input type="radio"
+                               id={recurringFrequencyId}
+                               name={frequencyGroupName}
+                               value="recurring"
+                               class="visually-hidden"
+                               checked={isRecurringFrequencySelected}
+                               onchange={handleFrequencyChange} />
+                        <label for={recurringFrequencyId} class="toggle-option">{labels.ec_label_frequency_recurring}</label>
+                    </fieldset>
                 </template>
             </fieldset>
 
