@@ -23,15 +23,15 @@
  *
  * PAYMENT INTENT FIELDS  (sent to POST /PaymentIntent as PaymentMethod.*)
  *
+ *   paymentProcessor
+ *     FinDock processor package name. Maps to PaymentMethod.Processor. Required.
+ *     Source: PaymentMethods[].Processors[].Name from GET /PaymentMethods.
+ *     Example: "PaymentHub-Stripe"
+ *
  *   paymentMethod
  *     Name of the payment method. Maps to PaymentMethod.Name. Required.
  *     Source: PaymentMethods[].Name from GET /PaymentMethods.
  *     Example: "CreditCard"
- *
- *   paymentProcessor
- *     FinDock processor package name. Maps to PaymentMethod.Processor.
- *     Source: PaymentMethods[].Processors[].Name from GET /PaymentMethods.
- *     Example: "PaymentHub-Stripe"
  *
  *   target
  *     Merchant account that receives the payment. Maps to PaymentMethod.Target.
@@ -70,8 +70,8 @@
  */
 export const PAYMENT_METHOD_CONFIG = [
     {
-        paymentMethod: 'CreditCard',
         paymentProcessor: 'PaymentHub-Stripe',
+        paymentMethod: 'CreditCard',
         target: 'Stripe-Main-Account',
         enabledOneTime: true,
         enabledRecurring: true,
@@ -99,8 +99,8 @@ export const PAYMENT_METHOD_CONFIG = [
         ]
     },
     {
-        paymentMethod: 'Ideal',
         paymentProcessor: 'PaymentHub-Stripe',
+        paymentMethod: 'Ideal',
         target: 'Stripe-Main-Account',
         enabledOneTime: true,
         enabledRecurring: false,

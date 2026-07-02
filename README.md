@@ -73,11 +73,11 @@ Example:
 npm run generate:config -- --org Dev_org
 ```
 
-The script calls `GET /PaymentMethods` via anonymous Apex, formats the response into the flat config array, and overwrites `paymentMethodConfiguration.js` directly. After it runs:
+The script calls `GET /PaymentMethods` via anonymous Apex, formats the response into the flat config array, and overwrites `paymentMethodConfiguration.js` directly. Entries are sorted by `paymentProcessor` first, then `paymentMethod`, so methods for the same processor stay grouped together. After it runs:
 
-1. **Fill in the `target` field** for each entry — the script marks these as `TODO` with an inline comment explaining where to find the value (FinDock Setup → Processors & Methods → Accounts tab). The merchant account is not returned by the API, so this step is always manual.
+1. **Fill in the `target` field** for each entry — it's left empty by the script. Find the value in FinDock Setup → Processors & Methods → Accounts tab. The merchant account is not returned by the API, so this step is always manual.
 2. **Review `enabledOneTime` / `enabledRecurring`** — the script enables one-time for all methods and recurring only where `supportsRecurring` is `true`. Adjust if needed.
-3. **Set `isDefaultOneTime` / `isDefaultRecurring`** — the script pre-selects the first eligible method. Change if a different method should be the default.
+3. **Set `isDefaultOneTime` / `isDefaultRecurring`** — the script pre-selects the first entry in the sorted list. Change if a different method should be the default.
 
 **Alternative — Developer Console:** paste `scripts/apex/generate-payment-method-config.apex` into Execute Anonymous, run it, then find the `FDPAYCONFIG:` line in the debug log and copy the JSON from there.
 
@@ -85,8 +85,8 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 
 | Field | Description |
 | --- | --- |
-| `paymentMethod` | Name of the payment method. Maps to `PaymentMethod.Name` in the PaymentIntent. Source: `PaymentMethods[].Name` from `GET /PaymentMethods`. |
 | `paymentProcessor` | Name of the FinDock processor package (e.g. `PaymentHub-Stripe`). Maps to `PaymentMethod.Processor`. Source: `PaymentMethods[].Processors[].Name`. |
+| `paymentMethod` | Name of the payment method. Maps to `PaymentMethod.Name` in the PaymentIntent. Source: `PaymentMethods[].Name` from `GET /PaymentMethods`. |
 | `target` | Merchant account name. Maps to `PaymentMethod.Target`. Find it in FinDock Setup → Processors & Methods → Accounts tab. Not returned by the API — must be filled in manually. |
 | `enabledOneTime` | Show this method for one-time payments. |
 | `enabledRecurring` | Show this method for recurring payments. Must be `false` when `supportsRecurring` is `false`. |

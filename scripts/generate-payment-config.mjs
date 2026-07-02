@@ -76,8 +76,8 @@ try {
 function formatEntry(entry) {
     const lines = [
         `    {`,
-        `        paymentMethod: '${entry.paymentMethod}',`,
         `        paymentProcessor: '${entry.paymentProcessor}',`,
+        `        paymentMethod: '${entry.paymentMethod}',`,
         `        target: '${entry.target}',`,
         `        enabledOneTime: ${entry.enabledOneTime},`,
         `        enabledRecurring: ${entry.enabledRecurring},`,
