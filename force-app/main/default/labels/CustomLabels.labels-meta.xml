@@ -81,7 +81,7 @@
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Frequency option: recurring payment</shortDescription>
-        <value>Recurring</value>
+        <value>Monthly</value>
     </labels>
 
     <!-- Payment Form — screen reader / assistive text -->

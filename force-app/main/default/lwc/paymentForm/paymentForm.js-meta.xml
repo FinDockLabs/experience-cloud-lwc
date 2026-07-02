@@ -19,7 +19,7 @@
             <property name="showFrequency" type="Boolean" label="Show Frequency Toggle"
                       description="Show the one-time / recurring frequency selector." default="true"/>
             <property name="defaultFrequency" type="String" label="Default Frequency"
-                      description="Pre-selected frequency when the form loads." datasource="oneTime, recurring" default="oneTime"/>
+                      description="Pre-selected frequency when the form loads." datasource="One time, Monthly" default="One time"/>
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

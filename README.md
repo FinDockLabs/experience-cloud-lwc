@@ -22,7 +22,11 @@ This is the code-first alternative to the [experience-cloud-flow-templates](http
 | `currency` | String | `EUR` | ISO currency code shown next to the amount field (e.g. `EUR`, `USD`, `GBP`). |
 | `amount` | Integer | — | Default amount pre-filled in the amount field. The payer can still change it. |
 | `showFrequency` | Boolean | `true` | Show the one-time / recurring frequency toggle. |
-| `defaultFrequency` | String | `oneTime` | Pre-selected frequency when the form loads: `oneTime` or `recurring`. |
+| `defaultFrequency` | String | `One time` | Pre-selected frequency when the form loads, shown in App Builder / Experience Builder as `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
+
+Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only cadence supported
+today. There's no `Monthly`/`Weekly`/etc. picker; the toggle is a fixed **One-time / Monthly**
+choice. Add a configurable frequency property if another cadence is needed later.
 
 ### `c-payment-selector` — API
 

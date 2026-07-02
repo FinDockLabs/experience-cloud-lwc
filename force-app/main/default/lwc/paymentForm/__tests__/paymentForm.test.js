@@ -96,10 +96,22 @@ describe('paymentForm', () => {
             expect(element.shadowRoot.querySelector('.frequency-toggle')).not.toBeNull();
         });
 
-        it('pre-selects defaultFrequency when the form loads', () => {
+        it('pre-selects defaultFrequency when the form loads (legacy code)', () => {
             const element = createComponent({ defaultFrequency: 'recurring' });
             expect(element.shadowRoot.querySelector('input[value="recurring"]').checked).toBe(true);
             expect(element.shadowRoot.querySelector('input[value="oneTime"]').checked).toBe(false);
+        });
+
+        it('pre-selects defaultFrequency from the App Builder "Monthly" option', () => {
+            const element = createComponent({ defaultFrequency: 'Monthly' });
+            expect(element.shadowRoot.querySelector('input[value="recurring"]').checked).toBe(true);
+            expect(element.shadowRoot.querySelector('input[value="oneTime"]').checked).toBe(false);
+        });
+
+        it('pre-selects defaultFrequency from the App Builder "One time" option', () => {
+            const element = createComponent({ defaultFrequency: 'One time' });
+            expect(element.shadowRoot.querySelector('input[value="oneTime"]').checked).toBe(true);
+            expect(element.shadowRoot.querySelector('input[value="recurring"]').checked).toBe(false);
         });
     });
 
@@ -275,6 +287,14 @@ describe('paymentForm', () => {
             typeAmount(element, '10');
             await Promise.resolve();
             expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.OneTime.CurrencyISOCode).toBe('USD');
+        });
+
+        it('sets Recurring.Frequency to Monthly', async () => {
+            const element = createComponent();
+            setFrequency(element, 'recurring');
+            typeAmount(element, '15');
+            await Promise.resolve();
+            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.Recurring.Frequency).toBe('Monthly');
         });
     });
 });

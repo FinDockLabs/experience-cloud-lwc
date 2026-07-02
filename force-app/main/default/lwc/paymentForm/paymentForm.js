@@ -6,6 +6,22 @@ import LOCALE from '@salesforce/i18n/locale';
 // Ensures unique radio `name`/id attributes when multiple payment forms are on the same page.
 let _nextInstanceId = 0;
 
+// Only cadence supported today. Revisit as an @api property if other cadences are needed.
+const RECURRING_FREQUENCY = 'Monthly';
+
+// Maps the friendly values shown in the App Builder / Experience Builder "Default Frequency"
+// picklist to the internal frequency codes used throughout the component. Falls back to the
+// raw value so the legacy 'oneTime'/'recurring' codes still work if set programmatically.
+const FREQUENCY_ALIASES = {
+    'one time': 'oneTime',
+    'monthly': 'recurring'
+};
+
+function normalizeFrequency(value) {
+    if (!value) return 'oneTime';
+    return FREQUENCY_ALIASES[value.toLowerCase()] ?? value;
+}
+
 export default class PaymentForm extends LightningElement {
     @api recordId;
     @api currency = 'EUR';
@@ -128,7 +144,7 @@ export default class PaymentForm extends LightningElement {
     connectedCallback() {
         this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
         this.amountValue = this.amount != null ? String(this.amount) : '';
-        this.frequency = this.defaultFrequency ?? 'oneTime';
+        this.frequency = normalizeFrequency(this.defaultFrequency);
     }
 
     _validateConfig(config) {
@@ -165,7 +181,8 @@ export default class PaymentForm extends LightningElement {
             ...(isRecurring ? {
                 Recurring: {
                     Amount: this.amountValue,
-                    CurrencyISOCode: this.currency
+                    CurrencyISOCode: this.currency,
+                    Frequency: RECURRING_FREQUENCY
                 }
             } : {
                 OneTime: {
