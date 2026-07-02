@@ -1,6 +1,6 @@
 # Experience Cloud Payment LWC Templates
 
-LWC components for building payment pages on Experience Cloud as a code-first alternative to Screen Flows. Use this repo when you need full code control over your form's UX — layout, validation, step navigation — while still relying on FinDock's managed `cpm-payment-method-selector` and `cpm-pay-button` components for payment method selection and PaymentIntent submission.
+LWC components for building payment pages on Experience Cloud as a code-first alternative to Screen Flows. Use this repo when you need full code control over your form's UX — layout, validation, field composition — while still relying on FinDock's managed `cpm-payment-method-selector` and `cpm-pay-button` components for payment method selection and PaymentIntent submission.
 
 This is the code-first alternative to the [experience-cloud-flow-templates](https://github.com/FinDockLabs/experience-cloud-flow-templates) repo. Both repos use the same managed components; the difference is how the form is assembled: here it is done entirely in LWC, with no Flow configuration required.
 
@@ -19,9 +19,9 @@ This is the code-first alternative to the [experience-cloud-flow-templates](http
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `screenMode` | String | `OneScreen` | `OneScreen` — all steps on one page; `MultiScreen` — three separate steps (Amount, Personal Info, Payment Method) with Back/Next navigation and a progress indicator. |
-| `currency` | String | `EUR` | ISO currency code shown in the amount picker (e.g. `EUR`, `USD`, `GBP`). |
-| `hideFrequency` | Boolean | `false` | Hide the one-time / recurring frequency toggle. |
+| `currency` | String | `EUR` | ISO currency code shown next to the amount field (e.g. `EUR`, `USD`, `GBP`). |
+| `amount` | Integer | — | Default amount pre-filled in the amount field. The payer can still change it. |
+| `showFrequency` | Boolean | `true` | Show the one-time / recurring frequency toggle. |
 | `defaultFrequency` | String | `oneTime` | Pre-selected frequency when the form loads: `oneTime` or `recurring`. |
 
 ### `c-payment-selector` — API
@@ -51,7 +51,7 @@ Example — embedding the selector standalone in a custom LWC:
 2. Follow [these instructions](https://help.salesforce.com/s/articleView?id=experience.rss_flow_guestuser.htm&type=5) to set up Guest User access for the site. Make sure the **FinDock Experience Cloud** permission set (included in the FinDock | ProcessingHub package) is assigned to the site's Guest User.
 3. Run `npm run generate:config -- --org <alias>` to generate `paymentMethodConfiguration.js` from your org's active payment methods, then fill in the `target` field for each entry. See [Payment Method Configuration](#payment-method-configuration) below for details.
 4. Update `SuccessURL` and `FailureURL` in `paymentForm.js` (`_updatePaymentIntentContext`) to point to pages within your Experience Cloud site. These are currently hardcoded (`https://example.com/...`); they will be exposed as `c-payment-form` design properties in a later release so they can be configured in Experience Builder without editing code.
-5. Add `c-payment-form` to your Experience Cloud page in Experience Builder. Set the **Screen Mode**, **Currency**, and other design properties as needed.
+5. Add `c-payment-form` to your Experience Cloud page in Experience Builder. Set the **Currency**, **Amount**, and other design properties as needed.
 6. Go to the Experience Cloud Administration → Preferences → enable **Allow guest users to access public APIs**.
 
 ### Prerequisites for public (guest-user) pages
