@@ -4,6 +4,10 @@ LWC components for building payment pages on Experience Cloud as a code-first al
 
 This is the code-first alternative to the [experience-cloud-flow-templates](https://github.com/FinDockLabs/experience-cloud-flow-templates) repo. Both repos use the same managed components; the difference is how the form is assembled: here it is done entirely in LWC, with no Flow configuration required.
 
+## Deploy
+
+[![Deploy to Salesforce](https://app.jdeploy.cloud/images/flat.svg)](https://app.jdeploy.cloud/github/FinDockLabs/experience-cloud-lwc/main)
+
 ## Components
 
 | Component | Tag | Exposed | Purpose |
@@ -43,7 +47,7 @@ Example — embedding the selector standalone in a custom LWC:
 
 ## Installation
 
-1. Press the **Deploy to Salesforce** button below.
+1. Press the **Deploy to Salesforce** button above.
 2. Follow [these instructions](https://help.salesforce.com/s/articleView?id=experience.rss_flow_guestuser.htm&type=5) to set up Guest User access for the site. Make sure the **FinDock Experience Cloud** permission set (included in the FinDock | ProcessingHub package) is assigned to the site's Guest User.
 3. Run `npm run generate:config -- --org <alias>` to generate `paymentMethodConfiguration.js` from your org's active payment methods, then fill in the `target` field for each entry. See [Payment Method Configuration](#payment-method-configuration) below for details.
 4. Update `SuccessURL` and `FailureURL` in `paymentForm.js` (`_updatePaymentIntentContext`) to point to pages within your Experience Cloud site. These are currently hardcoded (`https://example.com/...`); they will be exposed as `c-payment-form` design properties in a later release so they can be configured in Experience Builder without editing code.
@@ -57,10 +61,6 @@ For unauthenticated payers the following must all be in place or payments will f
 1. **FinDock | ProcessingHub must be installed AND connected** (from FinDock Setup). Installing alone is not enough — the connection step designates an integration user that handles async processing for guest-user payments.
 2. **The FinDock Integration User permission set group must be assigned to the ProcessingHub integration user.**
 3. **The FinDock Experience Cloud permission set must be assigned to the site's Guest User.**
-
-## Deploy
-
-[![Deploy to Salesforce](https://app.jdeploy.cloud/images/flat.svg)](https://app.jdeploy.cloud/github/FinDockLabs/experience-cloud-lwc/main)
 
 ## Payment Method Configuration
 
