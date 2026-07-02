@@ -20,14 +20,13 @@ export default class PaymentForm extends LightningElement {
     @track amountValue = null;
     @track frequency = 'oneTime';
     @track selectedPaymentMethod = null;
+    @track paymentIntent = {};
+    @track paymentError = null;
+    @track configError = null;
 
     labels = labels;
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
     frequencyOptions = FREQUENCY_OPTIONS;
-
-    @track paymentIntent = {};
-    @track paymentError = null;
-    @track configError = null;
 
     get shouldShowFrequency() {
         return this.showFrequency !== false;
@@ -47,20 +46,14 @@ export default class PaymentForm extends LightningElement {
         );
     }
 
+    get paymentErrorJson() {
+        return JSON.stringify(this.paymentError, null, 2);
+    }
+
     connectedCallback() {
         this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
         this.amountValue = this.amount ?? null;
         this.frequency = this.defaultFrequency ?? 'oneTime';
-    }
-
-    handleFieldChange(event) {
-        this[event.target.dataset.field] = event.detail.value;
-        this._updatePaymentIntentContext();
-    }
-
-    handlePaymentMethodChanged(event) {
-        this.selectedPaymentMethod = event.detail;
-        this._updatePaymentIntentContext();
     }
 
     _validateConfig(config) {
@@ -78,17 +71,6 @@ export default class PaymentForm extends LightningElement {
             }
         }
         return null;
-    }
-
-    handlePaymentResult(event) {
-        const result = event.detail;
-        if (result?.errorMessage || result?.statusCode) {
-            this.paymentError = result;
-        }
-    }
-
-    get paymentErrorJson() {
-        return JSON.stringify(this.paymentError, null, 2);
     }
 
     _updatePaymentIntentContext() {
@@ -122,5 +104,22 @@ export default class PaymentForm extends LightningElement {
                 Target: this.selectedPaymentMethod?.target
             }
         };
+    }
+
+    handleFieldChange(event) {
+        this[event.target.dataset.field] = event.detail.value;
+        this._updatePaymentIntentContext();
+    }
+
+    handlePaymentMethodChanged(event) {
+        this.selectedPaymentMethod = event.detail;
+        this._updatePaymentIntentContext();
+    }
+
+    handlePaymentResult(event) {
+        const result = event.detail;
+        if (result?.errorMessage || result?.statusCode) {
+            this.paymentError = result;
+        }
     }
 }

@@ -13,22 +13,24 @@
 .form-section {
     border: 0;
     padding: 0;
-    margin: 0;
+    margin-block: 0;
+    margin-inline: 0;
+    margin-block-end: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-6, var(--slds-g-spacing-6, 1rem)));
     min-width: 0;
 }
 
 /* DEBUG: temporary error panel — remove before go-live */
 .error-debug-panel {
     margin-top: 1rem;
-    border: 2px dashed #c23934;
+    border: 2px dashed var(--dxp-s-color-border-error, var(--dxp-g-color-border-error, var(--slds-g-color-border-error-1, #c23934)));
     border-radius: 4px;
     padding: 0.75rem;
-    background: #fff3f3;
+    background: var(--dxp-s-color-background-error, var(--dxp-g-color-background-error, var(--slds-g-color-error-container-1, #fff3f3)));
 }
 
 .error-debug-title {
     font-weight: bold;
-    color: #c23934;
+    color: var(--dxp-s-color-text-error, var(--dxp-g-color-text-error, var(--slds-g-color-error-1, #c23934)));
     margin: 0 0 0.5rem;
     font-size: 0.8rem;
     text-transform: uppercase;
@@ -40,6 +42,6 @@
     font-size: 0.75rem;
     white-space: pre-wrap;
     word-break: break-all;
-    color: #333;
+    color: var(--dxp-s-color-text-default, var(--dxp-g-color-text-default, var(--slds-g-color-neutral-base-10, #333)));
     background: transparent;
 }
