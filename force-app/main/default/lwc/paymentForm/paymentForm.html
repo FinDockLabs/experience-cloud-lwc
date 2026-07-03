@@ -74,6 +74,8 @@
                                  value={firstName}
                                  data-field="firstName"
                                  required
+                                 pattern=".*\S.*"
+                                 message-when-pattern-mismatch={labels.ec_error_invalid_name}
                                  onchange={handleFieldChange}>
                 </lightning-input>
                 <lightning-input type="text"
@@ -82,6 +84,8 @@
                                  value={lastName}
                                  data-field="lastName"
                                  required
+                                 pattern=".*\S.*"
+                                 message-when-pattern-mismatch={labels.ec_error_invalid_name}
                                  onchange={handleFieldChange}>
                 </lightning-input>
                 <lightning-input type="email"
@@ -97,15 +101,34 @@
             <c-payment-selector
                 config={paymentMethodConfig}
                 frequency={frequency}
-                payment-intent-response={paymentError}
                 onpaymentmethodchanged={handlePaymentMethodChanged}>
             </c-payment-selector>
-            <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} onresult={handlePaymentResult}></cpm-pay-button>
-
+            <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled}></cpm-pay-button>
         </div>
     </div>
 
-    <!-- DEBUG: temporary error panel for testing — remove before go-live -->
+    <template lwc:if={hasPaymentError}>
+        <div class="payment-error-banner" role="alert">
+            <lightning-icon icon-name="utility:error"
+                            variant="error"
+                            size="x-small"
+                            class="payment-error-banner__icon"
+                            aria-hidden="true">
+            </lightning-icon>
+            <div class="payment-error-banner__content">
+                <p class="payment-error-banner__message">{paymentErrorLabel}</p>
+                <template lwc:if={hasPaymentErrorDetails}>
+                    <ul class="payment-error-banner__details">
+                        <template for:each={paymentErrorDetails} for:item="detail">
+                            <li key={detail} class="payment-error-banner__detail">{detail}</li>
+                        </template>
+                    </ul>
+                </template>
+            </div>
+        </div>
+    </template>
+
+    <!-- TEMP DEBUG (PaymentHub testing only) — remove before merging back -->
     <template lwc:if={paymentError}>
         <div class="error-debug-panel" role="alert">
             <p class="error-debug-title">{labels.ec_debug_error_title}</p>

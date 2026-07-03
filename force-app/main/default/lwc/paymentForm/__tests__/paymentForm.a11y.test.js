@@ -1,5 +1,8 @@
 import { createElement } from 'lwc';
 import PaymentForm from 'c/paymentForm';
+import { publish } from 'lightning/messageService';
+import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
+import { PAYMENT_FLOW_MESSAGE_TYPES } from 'cpm/paymentFlowChannel';
 
 // toBeAccessible() is registered globally by jest.setup.a11y.js via @sa11y/jest setup().
 // It runs axe-core with Salesforce preset rules covering WCAG 2.1 AA + WCAG 2.2 AA
@@ -51,6 +54,22 @@ describe('c-payment-form WCAG 2.2 AA accessibility', () => {
     it('passes axe scan when frequency toggle is hidden', async () => {
         const element = createComponent({ showFrequency: false });
         await Promise.resolve();
+        await expect(element).toBeAccessible();
+    });
+
+    // ── 4. Payment error banner — announced via role="alert" ─────────────────────
+    // Covers: WCAG 4.1.3 Status Messages
+    // The generic payment error banner must be announced to assistive tech without
+    // requiring focus to move to it.
+    it('passes axe scan when the payment error banner is shown', async () => {
+        const element = createComponent();
+        publish(undefined, FINDOCK_PAYMENT_FLOW, {
+            type: PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR,
+            body: { statusCode: 422, errorMessage: 'IBAN invalid' }
+        });
+        await Promise.resolve();
+
+        expect(element.shadowRoot.querySelector('.payment-error-banner[role="alert"]')).not.toBeNull();
         await expect(element).toBeAccessible();
     });
 });

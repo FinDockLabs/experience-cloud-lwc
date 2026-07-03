@@ -1,4 +1,8 @@
-import { api, LightningElement, track } from "lwc";
+import { api, wire, LightningElement, track } from "lwc";
+import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService';
+import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
+import { PAYMENT_FLOW_MESSAGE_TYPES } from 'cpm/paymentFlowChannel';
+import { responseHasFieldLevelError } from 'cpm/paymentMethodValidators';
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
 import LOCALE from '@salesforce/i18n/locale';
@@ -31,6 +35,32 @@ function todayISODate() {
     return `${d.getFullYear()}-${month}-${day}`;
 }
 
+// Payment API error codes, grouped by how the payer should be guided to react.
+// Bank account/IBAN/BIC codes are already shown inline on the relevant field by
+// cpm-payment-method-selector, so their banner copy points there instead of repeating
+// the field-level message. See docs/engineering (Payment API error code reference).
+const RECOVERABLE_ERROR_CODES = new Set(['201', '202', '203', '204', '206']);
+const CONFIG_ERROR_CODES = new Set(['010', '011', '012', '998']);
+const INVALID_DATA_ERROR_CODES = new Set(['200', '205']);
+
+// Picks the payer-facing label for a payment intent failure based on its error code(s),
+// so a bank-detail typo and a missing-configuration failure don't show the same message.
+// Falls back to a generic label when no code matches a known group (e.g. code 999, or a
+// response with no structured error codes at all).
+function paymentErrorLabelKey(errors) {
+    const codes = (errors ?? []).map(error => error?.code);
+    if (codes.some(code => RECOVERABLE_ERROR_CODES.has(code))) {
+        return 'ec_error_payment_recoverable';
+    }
+    if (codes.some(code => CONFIG_ERROR_CODES.has(code))) {
+        return 'ec_error_payment_config';
+    }
+    if (codes.some(code => INVALID_DATA_ERROR_CODES.has(code))) {
+        return 'ec_error_payment_invalid_data';
+    }
+    return 'ec_error_payment_generic';
+}
+
 export default class PaymentForm extends LightningElement {
     @api recordId;
     @api currency = 'EUR';
@@ -52,6 +82,10 @@ export default class PaymentForm extends LightningElement {
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
     _instanceId = ++_nextInstanceId;
     _initialAmountFormatted = false;
+    _subscription = null;
+
+    @wire(MessageContext)
+    messageContext;
 
     get shouldShowFrequency() {
         return this.showFrequency !== false;
@@ -137,6 +171,32 @@ export default class PaymentForm extends LightningElement {
         );
     }
 
+    get hasPaymentError() {
+        return Boolean(this.paymentError);
+    }
+
+    get paymentErrorLabel() {
+        return this.labels[paymentErrorLabelKey(this.paymentError?.errors)];
+    }
+
+    // Specific provider message(s) shown under the banner heading. Only errors
+    // that are NOT tied to a payment method field are listed here: field-level
+    // errors (e.g. an invalid IBAN, code 202) already show their message inline
+    // on the field, so repeating them in the banner would be redundant.
+    get paymentErrorDetails() {
+        const messages = (this.paymentError?.errors ?? [])
+            .filter(error => !responseHasFieldLevelError([error]))
+            .map(error => (error?.message ?? '').trim())
+            .filter(message => message.length > 0);
+        // De-duplicate so the same message repeated across entries shows once.
+        return [...new Set(messages)];
+    }
+
+    get hasPaymentErrorDetails() {
+        return this.paymentErrorDetails.length > 0;
+    }
+
+    // TEMP DEBUG (PaymentHub testing only) — remove before merging back
     get paymentErrorJson() {
         return JSON.stringify(this.paymentError, null, 2);
     }
@@ -151,9 +211,34 @@ export default class PaymentForm extends LightningElement {
     }
 
     connectedCallback() {
+        this._subscription = subscribe(
+            this.messageContext,
+            FINDOCK_PAYMENT_FLOW,
+            (message) => this.handlePaymentFlowMessage(message)
+        );
         this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
         this.amountValue = this.amount != null ? String(this.amount) : '';
         this.frequency = normalizeFrequency(this.defaultFrequency);
+    }
+
+    disconnectedCallback() {
+        unsubscribe(this._subscription);
+        this._subscription = null;
+    }
+
+    /**
+     * Payment errors arrive as PAYMENT_ERROR messages on the findockPaymentFlow
+     * channel (published by the Pay Button); they drive the form-level error
+     * banner. A new payment attempt (PAYMENT_PENDING with isPending true)
+     * clears the error from the previous attempt.
+     */
+    handlePaymentFlowMessage(message) {
+        if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR) {
+            this.paymentError = message.body;
+        } else if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_PENDING
+                && message.body?.isPending === true) {
+            this.paymentError = null;
+        }
     }
 
     _validateConfig(config) {
@@ -258,12 +343,5 @@ export default class PaymentForm extends LightningElement {
     handlePaymentMethodChanged(event) {
         this.selectedPaymentMethod = event.detail;
         this._updatePaymentIntentContext();
-    }
-
-    handlePaymentResult(event) {
-        const result = event.detail;
-        if (result?.errorMessage || result?.statusCode) {
-            this.paymentError = result;
-        }
     }
 }

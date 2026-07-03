@@ -76,7 +76,7 @@
     box-shadow: none;
 }
 
-/* Force a stable, full-width box regardless of internal state (e.g. cpm-pay-button
+/* Force a stable, full-width box regardless of internal state (e.g. c-pay-button
    otherwise renders content-width when idle and jumps to full-width when it shows
    its own inline error banner, making the button visibly change size). */
 c-payment-selector,
@@ -90,7 +90,45 @@ cpm-pay-button {
     margin-block-start: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-6, var(--slds-g-spacing-6, 1rem)));
 }
 
-/* DEBUG: temporary error panel — remove before go-live */
+.payment-error-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--slds-g-spacing-2);
+    margin-top: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-6, var(--slds-g-spacing-6, 1rem)));
+    padding: var(--slds-g-spacing-3);
+    border-radius: var(--dxp-s-form-element-radius-border, var(--slds-g-radius-border-2));
+    background-color: var(--slds-g-color-error-base-95);
+}
+
+.payment-error-banner__icon {
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.payment-error-banner__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--slds-g-spacing-1);
+}
+
+.payment-error-banner__message {
+    margin: 0;
+    font-weight: var(--slds-g-font-weight-bold, 700);
+    color: var(--dxp-s-color-text-error, var(--dxp-g-color-text-error, var(--slds-g-color-error-1, #c23934)));
+}
+
+.payment-error-banner__details {
+    margin: 0;
+    padding-inline-start: var(--slds-g-spacing-4, 1rem);
+    list-style: disc;
+    color: var(--dxp-s-color-text-error, var(--dxp-g-color-text-error, var(--slds-g-color-error-1, #c23934)));
+}
+
+.payment-error-banner__detail {
+    margin: 0;
+}
+
+/* DEBUG: config error panel — remove before go-live */
 .error-debug-panel {
     margin-top: 1rem;
     border: 2px dashed var(--dxp-s-color-border-error, var(--dxp-g-color-border-error, var(--slds-g-color-border-error-1, #c23934)));
