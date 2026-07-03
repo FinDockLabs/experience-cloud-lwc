@@ -1,8 +1,10 @@
 # Experience Cloud Payment LWC Templates
 
-LWC components for building payment pages on Experience Cloud as a code-first alternative to Screen Flows. Use this repo when you need full code control over your form's UX — layout, validation, field composition — while still relying on FinDock's managed `cpm-payment-method-selector` and `cpm-pay-button` components for payment method selection and PaymentIntent submission.
+This repository contains building blocks to help you build custom Lightning Web Components (LWC) for digital payment experiences using Experience Cloud and FinDock Payment Experiences. Use this repository when you need full control over layout, validation, step, navigation, etc. Your custom LWC leverages the built-in capabilities of FinDock's [Payment Method Selector](https://docs.findock.com/docs/july-26/payments/payment-method-selector) and [Pay Button](https://docs.findock.com/docs/july-26/payments/pay-button) managed LWCs.
 
-This is the code-first alternative to the [experience-cloud-flow-templates](https://github.com/FinDockLabs/experience-cloud-flow-templates) repo. Both repos use the same managed components; the difference is how the form is assembled: here it is done entirely in LWC, with no Flow configuration required.
+This is the code-first alternative to using our managed LWCs directly in Flows. For other options, see [Templates for FinDock Payment Experiences](https://github.com/FinDockLabs/experience-cloud-templates). 
+
+Use this repo when you need full code control over your form's UX — layout, validation, field composition — while still relying on FinDock's managed `cpm-payment-method-selector` and `cpm-pay-button` components for payment method selection and PaymentIntent submission.
 
 ## Deploy
 
