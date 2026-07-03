@@ -43,6 +43,14 @@
         <value>Last name</value>
     </labels>
     <labels>
+        <fullName>ec_error_invalid_name</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Error shown when a name field contains only whitespace</shortDescription>
+        <value>Please enter a valid name.</value>
+    </labels>
+    <labels>
         <fullName>ec_placeholder_email</fullName>
         <categories>Experience Cloud</categories>
         <language>en_US</language>
