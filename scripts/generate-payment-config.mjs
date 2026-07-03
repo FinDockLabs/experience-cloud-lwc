@@ -48,14 +48,18 @@ try {
     }
 }
 
-if (!parsed.result?.success) {
+// On success, sf CLI nests the payload under `result`. On a runtime/compile failure it
+// nests the same fields under `data` instead and puts a summary in the top-level `message`.
+const result = parsed.result ?? parsed.data ?? {};
+
+if (!result.success) {
     console.error('Apex execution failed.');
-    console.error('Exception:', parsed.result?.exceptionMessage ?? '(none)');
-    console.error('Compile problem:', parsed.result?.compileProblem ?? '(none)');
+    console.error('Exception:', result.exceptionMessage ?? parsed.message ?? '(none)');
+    console.error('Compile problem:', result.compileProblem || '(none)');
     process.exit(1);
 }
 
-const logs = parsed.result?.logs ?? '';
+const logs = result.logs ?? '';
 const debugLine = logs.split('\n').find(l => l.includes('USER_DEBUG') && l.includes('FDPAYCONFIG:'));
 if (!debugLine) {
     console.error('FDPAYCONFIG marker not found in debug log.');
