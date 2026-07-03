@@ -3,45 +3,34 @@ import PaymentForm from 'c/paymentForm';
 
 function createComponent(props = {}) {
     const element = createElement('c-payment-form', { is: PaymentForm });
-    Object.assign(element, { screenMode: 'OneScreen', ...props });
+    Object.assign(element, props);
     document.body.appendChild(element);
     return element;
 }
 
-function dispatchAmountFrequencyChange(element, detail) {
-    element.shadowRoot.querySelector('c-amount-and-frequency').dispatchEvent(
-        new CustomEvent('amountfrequencychange', { detail })
+function typeAmount(element, rawValue) {
+    const input = element.shadowRoot.querySelector('.slds-input');
+    input.value = rawValue;
+    input.dispatchEvent(new CustomEvent('input'));
+    return input;
+}
+
+function blurAmountField(element) {
+    const input = element.shadowRoot.querySelector('.slds-input');
+    input.dispatchEvent(new CustomEvent('blur'));
+    return input;
+}
+
+function focusAmountField(element) {
+    const input = element.shadowRoot.querySelector('.slds-input');
+    input.dispatchEvent(new CustomEvent('focus'));
+    return input;
+}
+
+function setFrequency(element, value) {
+    element.shadowRoot.querySelector(`input[type="radio"][value="${value}"]`).dispatchEvent(
+        new CustomEvent('change')
     );
-}
-
-function fillStep1(element, amount = 25) {
-    dispatchAmountFrequencyChange(element, {
-        amountOneTime: amount,
-        amountRecurring: null,
-        frequency: 'oneTime'
-    });
-}
-
-// Navigation buttons use data-id attributes since label is an LWC property, not an HTML attribute
-function getNextBtn(element) {
-    return element.shadowRoot.querySelector('lightning-button[data-id="next"]');
-}
-
-function getBackBtn(element) {
-    return element.shadowRoot.querySelector('lightning-button[data-id="back"]');
-}
-
-async function navigateToStep(element, targetStep) {
-    if (targetStep >= 2) {
-        fillStep1(element);
-        await Promise.resolve();
-        getNextBtn(element).click();
-        await Promise.resolve();
-    }
-    if (targetStep >= 3) {
-        getNextBtn(element).click();
-        await Promise.resolve();
-    }
 }
 
 afterEach(() => {
@@ -52,101 +41,24 @@ afterEach(() => {
 });
 
 describe('paymentForm', () => {
-    describe('OneScreen mode', () => {
+    describe('rendering', () => {
         it('renders all sections at once', () => {
             const element = createComponent();
-            expect(element.shadowRoot.querySelector('c-amount-and-frequency')).not.toBeNull();
+            expect(element.shadowRoot.querySelector('.slds-input')).not.toBeNull();
             expect(element.shadowRoot.querySelectorAll('lightning-input')).toHaveLength(3);
             expect(element.shadowRoot.querySelector('c-payment-selector')).not.toBeNull();
             expect(element.shadowRoot.querySelector('cpm-pay-button')).not.toBeNull();
         });
-
-        it('does not render step navigation buttons', () => {
-            const element = createComponent();
-            expect(element.shadowRoot.querySelector('.step-navigation')).toBeNull();
-        });
-
-        it('does not render progress indicator', () => {
-            const element = createComponent();
-            expect(element.shadowRoot.querySelector('c-experience-progress-stages')).toBeNull();
-        });
-    });
-
-    describe('MultiScreen step navigation', () => {
-        it('shows only step 1 content initially', () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            expect(element.shadowRoot.querySelector('c-amount-and-frequency')).not.toBeNull();
-            expect(element.shadowRoot.querySelector('lightning-input')).toBeNull();
-            expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
-        });
-
-        it('renders progress indicator', () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            expect(element.shadowRoot.querySelector('c-experience-progress-stages')).not.toBeNull();
-        });
-
-        it('advances to step 2 after entering amount and clicking Next', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 2);
-            expect(element.shadowRoot.querySelector('lightning-input')).not.toBeNull();
-            expect(element.shadowRoot.querySelector('c-amount-and-frequency')).toBeNull();
-        });
-
-        it('advances to step 3 from step 2', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 3);
-            expect(element.shadowRoot.querySelector('c-payment-selector')).not.toBeNull();
-            expect(element.shadowRoot.querySelector('lightning-input')).toBeNull();
-        });
-
-        it('returns to step 1 after clicking Back on step 2', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 2);
-            getBackBtn(element).click();
-            await Promise.resolve();
-            expect(element.shadowRoot.querySelector('c-amount-and-frequency')).not.toBeNull();
-        });
-
-        it('returns to step 2 after clicking Back on step 3', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 3);
-            getBackBtn(element).click();
-            await Promise.resolve();
-            expect(element.shadowRoot.querySelector('lightning-input')).not.toBeNull();
-        });
-    });
-
-    describe('step 1 validation', () => {
-        it('Next button is disabled when no amount is entered', () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            expect(getNextBtn(element).disabled).toBe(true);
-        });
-
-        it('Next button is enabled after a valid amount is entered', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            fillStep1(element, 50);
-            await Promise.resolve();
-            expect(getNextBtn(element).disabled).toBe(false);
-        });
-
-        it('Next button remains disabled when amount is zero', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            fillStep1(element, 0);
-            await Promise.resolve();
-            expect(getNextBtn(element).disabled).toBe(true);
-        });
     });
 
     describe('event handlers', () => {
-        it('handleAmountFrequencyChanged enables Next for a recurring amount', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            dispatchAmountFrequencyChange(element, {
-                amountOneTime: null,
-                amountRecurring: 10,
-                frequency: 'recurring'
-            });
+        it('updates the pay button state for a recurring amount', async () => {
+            const element = createComponent();
+            setFrequency(element, 'recurring');
+            typeAmount(element, '10');
             await Promise.resolve();
-            expect(getNextBtn(element).disabled).toBe(false);
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.paymentIntent.Recurring.Amount).toBe('10');
         });
 
         it('handleFieldChange updates the field bound to data-field', async () => {
@@ -174,87 +86,65 @@ describe('paymentForm', () => {
     });
 
     describe('frequency toggle', () => {
-        it('passes showFrequency false to amount-and-frequency when hideFrequency is true', () => {
-            const element = createComponent({ hideFrequency: true });
-            const amountFreq = element.shadowRoot.querySelector('c-amount-and-frequency');
-            expect(amountFreq.showFrequencyToggle).toBe(false);
+        it('hides the frequency selector when showFrequency is false', () => {
+            const element = createComponent({ showFrequency: false });
+            expect(element.shadowRoot.querySelector('.frequency-toggle')).toBeNull();
         });
 
-        it('passes showFrequency true to amount-and-frequency when hideFrequency is false', () => {
-            const element = createComponent({ hideFrequency: false });
-            const amountFreq = element.shadowRoot.querySelector('c-amount-and-frequency');
-            expect(amountFreq.showFrequencyToggle).toBe(true);
+        it('shows the frequency selector when showFrequency is true', () => {
+            const element = createComponent({ showFrequency: true });
+            expect(element.shadowRoot.querySelector('.frequency-toggle')).not.toBeNull();
         });
 
-        it('passes defaultFrequency to amount-and-frequency', () => {
+        it('pre-selects defaultFrequency when the form loads (legacy code)', () => {
             const element = createComponent({ defaultFrequency: 'recurring' });
-            const amountFreq = element.shadowRoot.querySelector('c-amount-and-frequency');
-            expect(amountFreq.defaultFrequency).toBe('recurring');
+            expect(element.shadowRoot.querySelector('input[value="recurring"]').checked).toBe(true);
+            expect(element.shadowRoot.querySelector('input[value="oneTime"]').checked).toBe(false);
         });
 
-        it('passes currency to amount-and-frequency', () => {
-            const element = createComponent({ currency: 'GBP' });
-            const amountFreq = element.shadowRoot.querySelector('c-amount-and-frequency');
-            expect(amountFreq.defaultCurrency).toBe('GBP');
+        it('pre-selects defaultFrequency from the App Builder "Monthly" option', () => {
+            const element = createComponent({ defaultFrequency: 'Monthly' });
+            expect(element.shadowRoot.querySelector('input[value="recurring"]').checked).toBe(true);
+            expect(element.shadowRoot.querySelector('input[value="oneTime"]').checked).toBe(false);
+        });
+
+        it('pre-selects defaultFrequency from the App Builder "One time" option', () => {
+            const element = createComponent({ defaultFrequency: 'One time' });
+            expect(element.shadowRoot.querySelector('input[value="oneTime"]').checked).toBe(true);
+            expect(element.shadowRoot.querySelector('input[value="recurring"]').checked).toBe(false);
+        });
+    });
+
+    describe('default amount', () => {
+        it('pre-fills the amount field from the amount property', () => {
+            const element = createComponent({ amount: 25 });
+            const amountInput = element.shadowRoot.querySelector('.slds-input');
+            expect(amountInput.value).toBe('25');
+        });
+
+        it('formats a pre-filled default amount with grouping separators on initial render', () => {
+            const element = createComponent({ amount: 1000 });
+            const amountInput = element.shadowRoot.querySelector('.slds-input');
+            expect(amountInput.value).toBe('1,000');
+        });
+
+        it('still submits the unformatted default amount in the payment intent', async () => {
+            const element = createComponent({ amount: 1000 });
+            setFrequency(element, 'oneTime');
+            element.shadowRoot.querySelector('lightning-input[data-field="firstName"]').dispatchEvent(
+                new CustomEvent('change', { detail: { value: 'Jane' } })
+            );
+            await Promise.resolve();
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.paymentIntent.OneTime.Amount).toBe('1000');
         });
     });
 
     describe('accessibility structure', () => {
-        it('renders an aria-live region', () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            expect(element.shadowRoot.querySelector('[aria-live="polite"]')).not.toBeNull();
-        });
-
-        it('aria-live region is present in OneScreen mode and contains no announcement', () => {
-            const element = createComponent({ screenMode: 'OneScreen' });
-            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
-            expect(liveRegion).not.toBeNull();
-            expect(liveRegion.textContent).toBe('');
-        });
-
-        it('aria-live region announces step in MultiScreen mode', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await Promise.resolve();
-            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
-            expect(liveRegion.textContent).toContain('Step 1');
-        });
-
-        it('step 2 wraps inputs in a fieldset with legend', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 2);
-            expect(element.shadowRoot.querySelector('fieldset')).not.toBeNull();
-            expect(element.shadowRoot.querySelector('legend')).not.toBeNull();
-        });
-
-        it('renders a visually-hidden h2 heading as focus target for the current step', () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            const heading = element.shadowRoot.querySelector('[data-step-heading]');
-            expect(heading).not.toBeNull();
-            expect(heading.tagName.toLowerCase()).toBe('h2');
-        });
-
-        it('aria-live region contains step 1 announcement in MultiScreen mode', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await Promise.resolve();
-            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
-            expect(liveRegion.textContent).toContain('Step 1');
-            expect(liveRegion.textContent).toContain('Amount and Frequency');
-        });
-
-        it('aria-live region updates to step 2 announcement after navigation', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 2);
-            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
-            expect(liveRegion.textContent).toContain('Step 2');
-            expect(liveRegion.textContent).toContain('Personal Information');
-        });
-
-        it('aria-live region updates to step 3 announcement after navigation', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 3);
-            const liveRegion = element.shadowRoot.querySelector('[aria-live="polite"]');
-            expect(liveRegion.textContent).toContain('Step 3');
-            expect(liveRegion.textContent).toContain('Payment Method');
+        it('personal information inputs are wrapped in a fieldset with legend', () => {
+            const element = createComponent();
+            expect(element.shadowRoot.querySelectorAll('fieldset')).toHaveLength(3);
+            expect(element.shadowRoot.querySelectorAll('legend')).toHaveLength(3);
         });
     });
 
@@ -277,27 +167,94 @@ describe('paymentForm', () => {
             expect(emailInput.label).toBe('Email Address');
         });
 
-        it('renders Next label on the step navigation button in MultiScreen mode', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await Promise.resolve();
-            expect(getNextBtn(element).label).toBe('Next');
+        it('renders Amount label for the amount input', () => {
+            const element = createComponent();
+            const label = element.shadowRoot.querySelector('.slds-form-element__label');
+            expect(label.textContent).toContain('Amount');
+            expect(label.getAttribute('for')).toBe(element.shadowRoot.querySelector('.slds-input').id);
+        });
+    });
+
+    describe('currency addon', () => {
+        it('shows the symbol for the configured currency in a single SLDS addon', () => {
+            const element = createComponent({ currency: 'USD' });
+            const addons = element.shadowRoot.querySelectorAll('.slds-form-element__addon');
+            expect(addons).toHaveLength(1);
+            expect(addons[0].textContent).toBe('$');
         });
 
-        it('renders Back label on the back navigation button in MultiScreen step 2', async () => {
-            const element = createComponent({ screenMode: 'MultiScreen' });
-            await navigateToStep(element, 2);
-            expect(getBackBtn(element).label).toBe('Back');
+        it('falls back to the default currency symbol when none is configured', () => {
+            const element = createComponent();
+            const addons = element.shadowRoot.querySelectorAll('.slds-form-element__addon');
+            expect(addons).toHaveLength(1);
+            expect(addons[0].textContent).toBe('€');
+        });
+    });
+
+    describe('amount input filtering', () => {
+        it('strips +, -, and other non-numeric characters as they are typed', () => {
+            const element = createComponent();
+            const input = typeAmount(element, '+++++---55543322224......');
+            expect(input.value).toBe('55543322224.');
+        });
+
+        it('does not allow a leading minus sign', () => {
+            const element = createComponent();
+            const input = typeAmount(element, '-10');
+            expect(input.value).toBe('10');
+        });
+
+        it('collapses multiple decimal points into one', () => {
+            const element = createComponent();
+            const input = typeAmount(element, '1.2.3');
+            expect(input.value).toBe('1.23');
+        });
+
+        it("limits decimal places to what the currency supports (2 for USD)", () => {
+            const element = createComponent({ currency: 'USD' });
+            const input = typeAmount(element, '10.123456');
+            expect(input.value).toBe('10.12');
+        });
+
+        it('disallows any decimal point for a zero-decimal currency like JPY', () => {
+            const element = createComponent({ currency: 'JPY' });
+            const input = typeAmount(element, '1000.7');
+            expect(input.value).toBe('1000');
+        });
+    });
+
+    describe('digit-group separators', () => {
+        it('formats the amount with grouping separators on blur', () => {
+            const element = createComponent();
+            typeAmount(element, '1000');
+            const input = blurAmountField(element);
+            expect(input.value).toBe('1,000');
+        });
+
+        it('shows the raw, unformatted value again when the field is refocused', () => {
+            const element = createComponent();
+            typeAmount(element, '1000');
+            blurAmountField(element);
+            const input = focusAmountField(element);
+            expect(input.value).toBe('1000');
+        });
+
+        it('does not change the underlying amount used in the payment intent', async () => {
+            const element = createComponent();
+            setFrequency(element, 'oneTime');
+            typeAmount(element, '1000');
+            blurAmountField(element);
+            await Promise.resolve();
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.paymentIntent.OneTime.Amount).toBe('1000');
         });
     });
 
     describe('payment intent context', () => {
         it('passes updated payment intent to cpm-pay-button when fields change', async () => {
             const element = createComponent();
-            dispatchAmountFrequencyChange(element, {
-                amountOneTime: 50,
-                amountRecurring: null,
-                frequency: 'oneTime'
-            });
+            setFrequency(element, 'oneTime');
+            typeAmount(element, '50');
             element.shadowRoot.querySelector('lightning-input[data-field="firstName"]').dispatchEvent(
                 new CustomEvent('change', { detail: { value: 'Jane' } })
             );
@@ -311,31 +268,43 @@ describe('paymentForm', () => {
             const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
             expect(payBtn.paymentIntent.Payer.Contact.SalesforceFields.FirstName).toBe('Jane');
             expect(payBtn.paymentIntent.Payer.Contact.SalesforceFields.LastName).toBe('Doe');
-            expect(payBtn.paymentIntent.OneTime.Amount).toBe(50);
+            expect(payBtn.paymentIntent.OneTime.Amount).toBe('50');
         });
 
         it('sets Recurring amount in payment intent when frequency is recurring', async () => {
             const element = createComponent();
-            dispatchAmountFrequencyChange(element, {
-                amountOneTime: null,
-                amountRecurring: 15,
-                frequency: 'recurring'
-            });
+            setFrequency(element, 'recurring');
+            typeAmount(element, '15');
             await Promise.resolve();
             const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
-            expect(payBtn.paymentIntent.Recurring.Amount).toBe(15);
+            expect(payBtn.paymentIntent.Recurring.Amount).toBe('15');
             expect(payBtn.paymentIntent.OneTime).toBeUndefined();
         });
 
         it('passes currency to payment intent', async () => {
             const element = createComponent({ currency: 'USD' });
-            dispatchAmountFrequencyChange(element, {
-                amountOneTime: 10,
-                amountRecurring: null,
-                frequency: 'oneTime'
-            });
+            setFrequency(element, 'oneTime');
+            typeAmount(element, '10');
             await Promise.resolve();
             expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.OneTime.CurrencyISOCode).toBe('USD');
+        });
+
+        it('sets Recurring.Frequency to Monthly', async () => {
+            const element = createComponent();
+            setFrequency(element, 'recurring');
+            typeAmount(element, '15');
+            await Promise.resolve();
+            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.Recurring.Frequency).toBe('Monthly');
+        });
+
+        it('sets Recurring.StartDate to today in yyyy-mm-dd format', async () => {
+            const element = createComponent();
+            setFrequency(element, 'recurring');
+            typeAmount(element, '15');
+            await Promise.resolve();
+            const today = new Date();
+            const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.Recurring.StartDate).toBe(expected);
         });
     });
 });

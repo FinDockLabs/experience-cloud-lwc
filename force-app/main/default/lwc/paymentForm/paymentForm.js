@@ -1,118 +1,159 @@
 import { api, LightningElement, track } from "lwc";
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
+import LOCALE from '@salesforce/i18n/locale';
+
+// Ensures unique radio `name`/id attributes when multiple payment forms are on the same page.
+let _nextInstanceId = 0;
+
+// Only cadence supported today. Revisit as an @api property if other cadences are needed.
+const RECURRING_FREQUENCY = 'Monthly';
+
+// Maps the friendly values shown in the App Builder / Experience Builder "Default Frequency"
+// picklist to the internal frequency codes used throughout the component. Falls back to the
+// raw value so the legacy 'oneTime'/'recurring' codes still work if set programmatically.
+const FREQUENCY_ALIASES = {
+    'one time': 'oneTime',
+    'monthly': 'recurring'
+};
+
+function normalizeFrequency(value) {
+    if (!value) return 'oneTime';
+    return FREQUENCY_ALIASES[value.toLowerCase()] ?? value;
+}
+
+// Recurring.StartDate is required by the Payment API (yyyy-mm-dd). No date picker on the form
+// today, so recurring payments always start today, in the payer's local time.
+function todayISODate() {
+    const d = new Date();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${month}-${day}`;
+}
 
 export default class PaymentForm extends LightningElement {
     @api recordId;
-    @api screenMode = 'OneScreen'; // 'OneScreen' — all steps on one page; 'MultiScreen' — steps split across screens
     @api currency = 'EUR';
-    @api hideFrequency = false;
+    @api amount;
+    @api showFrequency;
     @api defaultFrequency = 'oneTime';
-
-    get showFrequency() {
-        return !this.hideFrequency;
-    }
 
     @track firstName = '';
     @track lastName = '';
     @track email = '';
-    @track amountOneTime = null;
-    @track amountRecurring = null;
-    @track frequency = 'onetime';
+    @track amountValue = '';
+    @track frequency = 'oneTime';
     @track selectedPaymentMethod = null;
-    @track currentStep = 1;
-
-    labels = labels;
-    paymentMethodConfig = PAYMENT_METHOD_CONFIG;
-    _prevStep = 1;
-
     @track paymentIntent = {};
     @track paymentError = null;
     @track configError = null;
 
-    get isMultiScreen() {
-        return this.screenMode === 'MultiScreen';
+    labels = labels;
+    paymentMethodConfig = PAYMENT_METHOD_CONFIG;
+    _instanceId = ++_nextInstanceId;
+    _initialAmountFormatted = false;
+
+    get shouldShowFrequency() {
+        return this.showFrequency !== false;
     }
 
-    get showAmountStep() {
-        return !this.isMultiScreen || this.currentStep === 1;
+    get _currencyFormatInfo() {
+        try {
+            const parts = new Intl.NumberFormat(LOCALE, {
+                style: 'currency',
+                currency: this.currency,
+                currencyDisplay: 'narrowSymbol'
+            }).formatToParts(1);
+            const currencyIndex = parts.findIndex(part => part.type === 'currency');
+            const integerIndex = parts.findIndex(part => part.type === 'integer');
+            const currencyPart = parts[currencyIndex];
+            return {
+                symbol: currencyPart ? currencyPart.value : this.currency,
+                isBefore: currencyIndex !== -1 && currencyIndex < integerIndex
+            };
+        } catch {
+            return { symbol: this.currency, isBefore: true };
+        }
     }
 
-    get showPersonalInfoStep() {
-        return !this.isMultiScreen || this.currentStep === 2;
+    get currencySymbol() {
+        return this._currencyFormatInfo.symbol;
     }
 
-    get showPaymentStep() {
-        return !this.isMultiScreen || this.currentStep === 3;
+    get symbolBefore() {
+        return this._currencyFormatInfo.isBefore;
     }
 
-    get isStep1NextDisabled() {
-        const amount = this.frequency === 'recurring' ? this.amountRecurring : this.amountOneTime;
-        return !(amount && Number(amount) > 0);
+    get symbolAfter() {
+        return !this._currencyFormatInfo.isBefore;
     }
 
-    get isStep2NextDisabled() {
-        const inputs = this.template.querySelectorAll('lightning-input');
-        const allInputsValid = [...inputs].every(input => input.checkValidity());
-        return !(this.firstName && this.lastName && this.email) || !allInputsValid;
+    get _currencyDecimals() {
+        try {
+            return new Intl.NumberFormat(LOCALE, {
+                style: 'currency',
+                currency: this.currency
+            }).resolvedOptions().maximumFractionDigits;
+        } catch {
+            return 2;
+        }
+    }
+
+    get amountInputId() {
+        return `payment-form-amount-${this._instanceId}`;
+    }
+
+    get frequencyGroupName() {
+        return `payment-form-frequency-${this._instanceId}`;
+    }
+
+    get oneTimeFrequencyId() {
+        return `payment-form-frequency-onetime-${this._instanceId}`;
+    }
+
+    get recurringFrequencyId() {
+        return `payment-form-frequency-recurring-${this._instanceId}`;
+    }
+
+    get isOneTimeFrequencySelected() {
+        return this.frequency === 'oneTime';
+    }
+
+    get isRecurringFrequencySelected() {
+        return this.frequency === 'recurring';
     }
 
     get isPayButtonDisabled() {
-        const amount = this.frequency === 'recurring' ? this.amountRecurring : this.amountOneTime;
         const inputs = this.template.querySelectorAll('lightning-input');
         const allInputsValid = [...inputs].every(input => input.checkValidity());
         return !(
             this.firstName &&
             this.lastName &&
             this.email &&
-            amount &&
-            Number(amount) > 0 &&
+            this.amountValue &&
+            Number(this.amountValue) > 0 &&
             this.selectedPaymentMethod &&
             allInputsValid
         );
     }
 
-    get stepAnnouncement() {
-        if (!this.isMultiScreen) return '';
-        const stepNames = [
-            this.labels.ec_sr_step_amount_frequency,
-            this.labels.ec_sr_step_personal_info,
-            this.labels.ec_sr_step_payment_method,
-        ];
-        const template = this.labels.ec_sr_progress_step_announcement;
-        return template
-            .replace('{0}', this.currentStep)
-            .replace('{1}', stepNames.length)
-            .replace('{2}', stepNames[this.currentStep - 1]);
+    get paymentErrorJson() {
+        return JSON.stringify(this.paymentError, null, 2);
+    }
+
+    renderedCallback() {
+        if (this._initialAmountFormatted) return;
+        this._initialAmountFormatted = true;
+        const input = this.template.querySelector('.slds-input');
+        if (input) {
+            this._formatAmountDisplay(input);
+        }
     }
 
     connectedCallback() {
         this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
-    }
-
-    renderedCallback() {
-        if (this.isMultiScreen && this._prevStep !== this.currentStep) {
-            this._prevStep = this.currentStep;
-            const heading = this.template.querySelector('[data-step-heading]');
-            if (heading) heading.focus();
-        }
-    }
-
-    handleFieldChange(event) {
-        this[event.target.dataset.field] = event.detail.value;
-        this._updatePaymentIntentContext();
-    }
-
-    handleAmountFrequencyChanged(event) {
-        this.amountOneTime = event.detail.amountOneTime;
-        this.amountRecurring = event.detail.amountRecurring;
-        this.frequency = event.detail.frequency;
-        this._updatePaymentIntentContext();
-    }
-
-    handlePaymentMethodChanged(event) {
-        this.selectedPaymentMethod = event.detail;
-        this._updatePaymentIntentContext();
+        this.amountValue = this.amount != null ? String(this.amount) : '';
+        this.frequency = normalizeFrequency(this.defaultFrequency);
     }
 
     _validateConfig(config) {
@@ -132,25 +173,6 @@ export default class PaymentForm extends LightningElement {
         return null;
     }
 
-    handlePaymentResult(event) {
-        const result = event.detail;
-        if (result?.errorMessage || result?.statusCode) {
-            this.paymentError = result;
-        }
-    }
-
-    get paymentErrorJson() {
-        return JSON.stringify(this.paymentError, null, 2);
-    }
-
-    handleNextStep() {
-        if (this.currentStep < 3) this.currentStep += 1;
-    }
-
-    handlePreviousStep() {
-        if (this.currentStep > 1) this.currentStep -= 1;
-    }
-
     _updatePaymentIntentContext() {
         const isRecurring = this.frequency === 'recurring';
         this.paymentIntent = {
@@ -167,12 +189,14 @@ export default class PaymentForm extends LightningElement {
             },
             ...(isRecurring ? {
                 Recurring: {
-                    Amount: this.amountRecurring,
-                    CurrencyISOCode: this.currency
+                    Amount: this.amountValue,
+                    CurrencyISOCode: this.currency,
+                    Frequency: RECURRING_FREQUENCY,
+                    StartDate: todayISODate()
                 }
             } : {
                 OneTime: {
-                    Amount: this.amountOneTime,
+                    Amount: this.amountValue,
                     CurrencyISOCode: this.currency
                 }
             }),
@@ -182,5 +206,64 @@ export default class PaymentForm extends LightningElement {
                 Target: this.selectedPaymentMethod?.target
             }
         };
+    }
+
+    handleFieldChange(event) {
+        this[event.target.dataset.field] = event.detail.value;
+        this._updatePaymentIntentContext();
+    }
+
+    handleAmountInput(event) {
+        let value = event.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
+        const firstDot = value.indexOf('.');
+        if (firstDot !== -1) {
+            value = value.substring(0, firstDot + 1) + value.substring(firstDot + 1).replace(/\./g, '');
+        }
+        const decimals = this._currencyDecimals;
+        const dotIndex = value.indexOf('.');
+        if (decimals === 0 && dotIndex !== -1) {
+            value = value.substring(0, dotIndex);
+        } else if (decimals > 0 && dotIndex !== -1 && value.length - dotIndex - 1 > decimals) {
+            value = value.substring(0, dotIndex + decimals + 1);
+        }
+        event.target.value = value;
+        this.amountValue = value;
+        this._updatePaymentIntentContext();
+    }
+
+    _formatAmountDisplay(inputEl) {
+        if (this.amountValue === '') return;
+        const numeric = Number(this.amountValue);
+        if (!Number.isFinite(numeric)) return;
+        inputEl.value = new Intl.NumberFormat(LOCALE, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: this._currencyDecimals
+        }).format(numeric);
+    }
+
+    handleAmountBlur(event) {
+        this._formatAmountDisplay(event.target);
+    }
+
+    // Swap back to the raw, unformatted value so grouping separators don't interfere with typing.
+    handleAmountFocus(event) {
+        event.target.value = this.amountValue;
+    }
+
+    handleFrequencyChange(event) {
+        this.frequency = event.target.value;
+        this._updatePaymentIntentContext();
+    }
+
+    handlePaymentMethodChanged(event) {
+        this.selectedPaymentMethod = event.detail;
+        this._updatePaymentIntentContext();
+    }
+
+    handlePaymentResult(event) {
+        const result = event.detail;
+        if (result?.errorMessage || result?.statusCode) {
+            this.paymentError = result;
+        }
     }
 }

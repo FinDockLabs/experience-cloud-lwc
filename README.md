@@ -1,8 +1,12 @@
 # Experience Cloud Payment LWC Templates
 
-LWC components for building payment pages on Experience Cloud as a code-first alternative to Screen Flows. Use this repo when you need full code control over your form's UX — layout, validation, step navigation — while still relying on FinDock's managed `cpm-payment-method-selector` and `cpm-pay-button` components for payment method selection and PaymentIntent submission.
+LWC components for building payment pages on Experience Cloud as a code-first alternative to Screen Flows. Use this repo when you need full code control over your form's UX — layout, validation, field composition — while still relying on FinDock's managed `cpm-payment-method-selector` and `cpm-pay-button` components for payment method selection and PaymentIntent submission.
 
 This is the code-first alternative to the [experience-cloud-flow-templates](https://github.com/FinDockLabs/experience-cloud-flow-templates) repo. Both repos use the same managed components; the difference is how the form is assembled: here it is done entirely in LWC, with no Flow configuration required.
+
+## Deploy
+
+[![Deploy to Salesforce](https://app.jdeploy.cloud/images/flat.svg)](https://app.jdeploy.cloud/github/FinDockLabs/experience-cloud-lwc/main)
 
 ## Components
 
@@ -15,10 +19,17 @@ This is the code-first alternative to the [experience-cloud-flow-templates](http
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `screenMode` | String | `OneScreen` | `OneScreen` — all steps on one page; `MultiScreen` — three separate steps (Amount, Personal Info, Payment Method) with Back/Next navigation and a progress indicator. |
-| `currency` | String | `EUR` | ISO currency code shown in the amount picker (e.g. `EUR`, `USD`, `GBP`). |
-| `hideFrequency` | Boolean | `false` | Hide the one-time / recurring frequency toggle. |
-| `defaultFrequency` | String | `oneTime` | Pre-selected frequency when the form loads: `oneTime` or `recurring`. |
+| `currency` | String | `EUR` | ISO currency code shown next to the amount field (e.g. `EUR`, `USD`, `GBP`). |
+| `amount` | Integer | — | Default amount pre-filled in the amount field. The payer can still change it. |
+| `showFrequency` | Boolean | `true` | Show the one-time / recurring frequency toggle. |
+| `defaultFrequency` | String | `One time` | Pre-selected frequency when the form loads, shown in App Builder / Experience Builder as `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
+
+Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only cadence supported
+today. There's no `Monthly`/`Weekly`/etc. picker; the toggle is a fixed **One-time / Monthly**
+choice. Add a configurable frequency property if another cadence is needed later.
+
+`Recurring.StartDate` is also required by the Payment API and is sent as today's date
+(`yyyy-mm-dd`, payer's local time) — there's no start-date picker on the form today.
 
 ### `c-payment-selector` — API
 
@@ -43,24 +54,11 @@ Example — embedding the selector standalone in a custom LWC:
 
 ## Installation
 
-1. Press the **Deploy to Salesforce** button below.
-2. Follow [these instructions](https://help.salesforce.com/s/articleView?id=experience.rss_flow_guestuser.htm&type=5) to set up Guest User access for the site. Make sure the **FinDock Experience Cloud** permission set (included in the FinDock | ProcessingHub package) is assigned to the site's Guest User.
+1. Press the **Deploy to Salesforce** button above.
+2. If the site needs to accept payments from unauthenticated (guest) users, complete the **Experience Cloud & Guest User Setup** steps in [experience-cloud-templates](https://github.com/FinDockLabs/experience-cloud-templates) first — payments will fail at runtime otherwise, even though the page renders correctly.
 3. Run `npm run generate:config -- --org <alias>` to generate `paymentMethodConfiguration.js` from your org's active payment methods, then fill in the `target` field for each entry. See [Payment Method Configuration](#payment-method-configuration) below for details.
 4. Update `SuccessURL` and `FailureURL` in `paymentForm.js` (`_updatePaymentIntentContext`) to point to pages within your Experience Cloud site. These are currently hardcoded (`https://example.com/...`); they will be exposed as `c-payment-form` design properties in a later release so they can be configured in Experience Builder without editing code.
-5. Add `c-payment-form` to your Experience Cloud page in Experience Builder. Set the **Screen Mode**, **Currency**, and other design properties as needed.
-6. Go to the Experience Cloud Administration → Preferences → enable **Allow guest users to access public APIs**.
-
-### Prerequisites for public (guest-user) pages
-
-For unauthenticated payers the following must all be in place or payments will fail at runtime:
-
-1. **FinDock | ProcessingHub must be installed AND connected** (from FinDock Setup). Installing alone is not enough — the connection step designates an integration user that handles async processing for guest-user payments.
-2. **The FinDock Integration User permission set group must be assigned to the ProcessingHub integration user.**
-3. **The FinDock Experience Cloud permission set must be assigned to the site's Guest User.**
-
-## Deploy
-
-[![Deploy to Salesforce](https://app.jdeploy.cloud/images/flat.svg)](https://app.jdeploy.cloud/github/FinDockLabs/experience-cloud-lwc/main)
+5. Add `c-payment-form` to your Experience Cloud page in Experience Builder. Set the **Currency**, **Amount**, and other design properties as needed.
 
 ## Payment Method Configuration
 
@@ -82,11 +80,11 @@ Example:
 npm run generate:config -- --org Dev_org
 ```
 
-The script calls `GET /PaymentMethods` via anonymous Apex, formats the response into the flat config array, and overwrites `paymentMethodConfiguration.js` directly. After it runs:
+The script calls `GET /PaymentMethods` via anonymous Apex, formats the response into the flat config array, and overwrites `paymentMethodConfiguration.js` directly. Entries are sorted by `paymentProcessor` first, then `paymentMethod`, so methods for the same processor stay grouped together. After it runs:
 
-1. **Fill in the `target` field** for each entry — the script marks these as `TODO` with an inline comment explaining where to find the value (FinDock Setup → Processors & Methods → Accounts tab). The merchant account is not returned by the API, so this step is always manual.
+1. **Fill in the `target` field** for each entry — it's left empty by the script. Find the value in FinDock Setup → Processors & Methods → Accounts tab. The merchant account is not returned by the API, so this step is always manual.
 2. **Review `enabledOneTime` / `enabledRecurring`** — the script enables one-time for all methods and recurring only where `supportsRecurring` is `true`. Adjust if needed.
-3. **Set `isDefaultOneTime` / `isDefaultRecurring`** — the script pre-selects the first eligible method. Change if a different method should be the default.
+3. **Set `isDefaultOneTime` / `isDefaultRecurring`** — the script pre-selects the first entry in the sorted list. Change if a different method should be the default.
 
 **Alternative — Developer Console:** paste `scripts/apex/generate-payment-method-config.apex` into Execute Anonymous, run it, then find the `FDPAYCONFIG:` line in the debug log and copy the JSON from there.
 
@@ -94,8 +92,8 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 
 | Field | Description |
 | --- | --- |
-| `paymentMethod` | Name of the payment method. Maps to `PaymentMethod.Name` in the PaymentIntent. Source: `PaymentMethods[].Name` from `GET /PaymentMethods`. |
 | `paymentProcessor` | Name of the FinDock processor package (e.g. `PaymentHub-Stripe`). Maps to `PaymentMethod.Processor`. Source: `PaymentMethods[].Processors[].Name`. |
+| `paymentMethod` | Name of the payment method. Maps to `PaymentMethod.Name` in the PaymentIntent. Source: `PaymentMethods[].Name` from `GET /PaymentMethods`. |
 | `target` | Merchant account name. Maps to `PaymentMethod.Target`. Find it in FinDock Setup → Processors & Methods → Accounts tab. Not returned by the API — must be filled in manually. |
 | `enabledOneTime` | Show this method for one-time payments. |
 | `enabledRecurring` | Show this method for recurring payments. Must be `false` when `supportsRecurring` is `false`. |
@@ -105,6 +103,8 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 | `displayLabel` | Label shown to the payer. Defaults to `paymentMethod` when omitted. |
 | `redirectInstruction` | Message shown before PSP redirect (e.g. for iDEAL, Bancontact). Omit when there is no redirect. |
 | `parameters` | Array of additional processor parameters (e.g. `locale`, `description`). `null` or omit when none. Each entry: `name`, `value`, `visibleToCustomer`, `displayLabel`, `required`, `data_type`, `description`. |
+
+`supportsRecurring` is not a duplicate of `enabledRecurring`: the former is the processor's technical capability, the latter is the admin's choice to offer the method. The managed `cpm-payment-method-selector` filters recurring-tab methods with `supportsRecurring && enabledRecurring`, so it acts as a runtime guard — if `enabledRecurring` is mistakenly set `true` on a method that doesn't actually support recurring, the method still won't appear on the recurring tab. Keep both fields consistent per the constraint above rather than relying on only one.
 
 ## How it works
 

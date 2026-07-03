@@ -1,7 +1,4 @@
 <template>
-    <!-- Announces step transitions to screen readers (WCAG 4.1.3) -->
-    <div aria-live="polite" class="visually-hidden" aria-atomic="true">{stepAnnouncement}</div>
-
     <div class="slds-card">
         <div class="slds-card__body slds-card__body_inner">
 
@@ -13,107 +10,97 @@
                 </div>
             </template>
 
-            <!-- Progress indicator (MultiScreen only) -->
-            <template lwc:if={isMultiScreen}>
-                <c-experience-progress-stages current-stage={currentStep}></c-experience-progress-stages>
-            </template>
-
-            <!-- Step 1: Amount & Frequency -->
-            <template lwc:if={showAmountStep}>
-                <h2 class="visually-hidden" tabindex="-1" data-step-heading>{labels.ec_sr_step_amount_frequency}</h2>
-                <div class="slds-form slds-form_stacked slds-m-bottom_medium">
-                    <c-amount-and-frequency
-                        default-currency={currency}
-                        show-frequency-toggle={showFrequency}
-                        default-frequency={defaultFrequency}
-                        onamountfrequencychange={handleAmountFrequencyChanged}>
-                    </c-amount-and-frequency>
+            <fieldset class="form-section slds-form slds-form_stacked">
+                <legend class="visually-hidden">{labels.ec_sr_amount_group}</legend>
+                <div class="slds-form-element">
+                    <label class="slds-form-element__label" for={amountInputId}>
+                        <abbr class="slds-required" title="required">*</abbr>{labels.ec_label_amount}
+                    </label>
+                    <div class="slds-form-element__control slds-input-has-fixed-addon">
+                        <template lwc:if={symbolBefore}>
+                            <span class="slds-form-element__addon">{currencySymbol}</span>
+                        </template>
+                        <input type="text"
+                               inputmode="decimal"
+                               autocomplete="transaction-amount"
+                               id={amountInputId}
+                               class="slds-input"
+                               value={amountValue}
+                               required
+                               oninput={handleAmountInput}
+                               onblur={handleAmountBlur}
+                               onfocus={handleAmountFocus} />
+                        <template lwc:if={symbolAfter}>
+                            <span class="slds-form-element__addon">{currencySymbol}</span>
+                        </template>
+                    </div>
                 </div>
-                <template lwc:if={isMultiScreen}>
-                    <div class="step-navigation">
-                        <lightning-button
-                            class="step-navigation-trailing"
-                            data-id="next"
-                            label={labels.ec_label_next}
-                            variant="brand"
-                            onclick={handleNextStep}
-                            disabled={isStep1NextDisabled}>
-                        </lightning-button>
-                    </div>
-                </template>
-            </template>
+                <template lwc:if={shouldShowFrequency}>
+                    <fieldset class="frequency-toggle">
+                        <legend class="visually-hidden">{labels.ec_label_frequency}</legend>
+                        <input type="radio"
+                               id={oneTimeFrequencyId}
+                               name={frequencyGroupName}
+                               value="oneTime"
+                               class="visually-hidden"
+                               checked={isOneTimeFrequencySelected}
+                               onchange={handleFrequencyChange} />
+                        <label for={oneTimeFrequencyId} class="toggle-option">{labels.ec_label_frequency_one_time}</label>
 
-            <!-- Step 2: Personal Information -->
-            <template lwc:if={showPersonalInfoStep}>
-                <h2 class="visually-hidden" tabindex="-1" data-step-heading>{labels.ec_sr_step_personal_info}</h2>
-                <fieldset class="form-section slds-form slds-form_stacked slds-m-bottom_medium">
-                    <legend class="visually-hidden">{labels.ec_sr_personal_info_group}</legend>
-                    <lightning-input type="text"
-                                     label={labels.ec_label_first_name}
-                                     placeholder={labels.ec_placeholder_first_name}
-                                     value={firstName}
-                                     data-field="firstName"
-                                     required
-                                     onchange={handleFieldChange}>
-                    </lightning-input>
-                    <lightning-input type="text"
-                                     label={labels.ec_label_last_name}
-                                     placeholder={labels.ec_placeholder_last_name}
-                                     value={lastName}
-                                     data-field="lastName"
-                                     required
-                                     onchange={handleFieldChange}>
-                    </lightning-input>
-                    <lightning-input type="email"
-                                     label={labels.ec_label_email_address}
-                                     placeholder={labels.ec_placeholder_email}
-                                     value={email}
-                                     data-field="email"
-                                     required
-                                     onchange={handleFieldChange}>
-                    </lightning-input>
-                </fieldset>
-                <template lwc:if={isMultiScreen}>
-                    <div class="step-navigation">
-                        <lightning-button
-                            data-id="back"
-                            label={labels.ec_label_back}
-                            onclick={handlePreviousStep}>
-                        </lightning-button>
-                        <lightning-button
-                            data-id="next"
-                            label={labels.ec_label_next}
-                            variant="brand"
-                            onclick={handleNextStep}
-                            disabled={isStep2NextDisabled}>
-                        </lightning-button>
-                    </div>
+                        <input type="radio"
+                               id={recurringFrequencyId}
+                               name={frequencyGroupName}
+                               value="recurring"
+                               class="visually-hidden"
+                               checked={isRecurringFrequencySelected}
+                               onchange={handleFrequencyChange} />
+                        <label for={recurringFrequencyId} class="toggle-option">
+                            <lightning-icon icon-name="utility:heart"
+                                            size="x-small"
+                                            class="monthly-icon"
+                                            aria-hidden="true">
+                            </lightning-icon>
+                            {labels.ec_label_frequency_recurring}
+                        </label>
+                    </fieldset>
                 </template>
-            </template>
+            </fieldset>
 
-            <!-- Step 3: Payment Method & Pay Button -->
-            <template lwc:if={showPaymentStep}>
-                <h2 class="visually-hidden" tabindex="-1" data-step-heading>{labels.ec_sr_step_payment_method}</h2>
-                <c-payment-selector
-                    config={paymentMethodConfig}
-                    frequency={frequency}
-                    payment-intent-response={paymentError}
-                    onpaymentmethodchanged={handlePaymentMethodChanged}>
-                </c-payment-selector>
-                <template lwc:if={isMultiScreen}>
-                    <div class="step-navigation">
-                        <lightning-button
-                            data-id="back"
-                            label={labels.ec_label_back}
-                            onclick={handlePreviousStep}>
-                        </lightning-button>
-                        <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} onresult={handlePaymentResult}></cpm-pay-button>
-                    </div>
-                </template>
-                <template lwc:else>
-                    <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} onresult={handlePaymentResult}></cpm-pay-button>
-                </template>
-            </template>
+            <fieldset class="form-section slds-form slds-form_stacked">
+                <legend class="visually-hidden">{labels.ec_sr_personal_info_group}</legend>
+                <lightning-input type="text"
+                                 label={labels.ec_label_first_name}
+                                 placeholder={labels.ec_placeholder_first_name}
+                                 value={firstName}
+                                 data-field="firstName"
+                                 required
+                                 onchange={handleFieldChange}>
+                </lightning-input>
+                <lightning-input type="text"
+                                 label={labels.ec_label_last_name}
+                                 placeholder={labels.ec_placeholder_last_name}
+                                 value={lastName}
+                                 data-field="lastName"
+                                 required
+                                 onchange={handleFieldChange}>
+                </lightning-input>
+                <lightning-input type="email"
+                                 label={labels.ec_label_email_address}
+                                 placeholder={labels.ec_placeholder_email}
+                                 value={email}
+                                 data-field="email"
+                                 required
+                                 onchange={handleFieldChange}>
+                </lightning-input>
+            </fieldset>
+
+            <c-payment-selector
+                config={paymentMethodConfig}
+                frequency={frequency}
+                payment-intent-response={paymentError}
+                onpaymentmethodchanged={handlePaymentMethodChanged}>
+            </c-payment-selector>
+            <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} onresult={handlePaymentResult}></cpm-pay-button>
 
         </div>
     </div>

@@ -12,14 +12,14 @@
     </targets>
     <targetConfigs>
         <targetConfig targets="lightning__RecordPage,lightning__HomePage,lightningCommunity__Default">
-            <property name="screenMode" type="String" label="Screen Mode"
-                      description="Controls the screen layout." datasource="OneScreen, MultiScreen" default="OneScreen"/>
             <property name="currency" type="String" label="Currency"
-                      description="ISO currency code shown in the amount picker (e.g. EUR, USD, GBP)." default="EUR"/>
-            <property name="hideFrequency" type="Boolean" label="Hide Frequency Toggle"
-                      description="Hide the one-time / recurring frequency selector. By default the toggle is visible."/>
+                      description="ISO currency code shown next to the amount field (e.g. EUR, USD, GBP)." default="EUR"/>
+            <property name="amount" type="Integer" label="Default Amount"
+                      description="Default amount pre-filled in the amount field. The donor/payer can still change it."/>
+            <property name="showFrequency" type="Boolean" label="Show Frequency Toggle"
+                      description="Show the one-time / recurring frequency selector." default="true"/>
             <property name="defaultFrequency" type="String" label="Default Frequency"
-                      description="Pre-selected frequency when the form loads." datasource="oneTime, recurring" default="oneTime"/>
+                      description="Pre-selected frequency when the form loads." datasource="One time, Monthly" default="One time"/>
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

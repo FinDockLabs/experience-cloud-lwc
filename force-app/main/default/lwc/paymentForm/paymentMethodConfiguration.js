@@ -23,15 +23,15 @@
  *
  * PAYMENT INTENT FIELDS  (sent to POST /PaymentIntent as PaymentMethod.*)
  *
+ *   paymentProcessor
+ *     FinDock processor package name. Maps to PaymentMethod.Processor. Required.
+ *     Source: PaymentMethods[].Processors[].Name from GET /PaymentMethods.
+ *     Example: "PaymentHub-Stripe"
+ *
  *   paymentMethod
  *     Name of the payment method. Maps to PaymentMethod.Name. Required.
  *     Source: PaymentMethods[].Name from GET /PaymentMethods.
  *     Example: "CreditCard"
- *
- *   paymentProcessor
- *     FinDock processor package name. Maps to PaymentMethod.Processor.
- *     Source: PaymentMethods[].Processors[].Name from GET /PaymentMethods.
- *     Example: "PaymentHub-Stripe"
  *
  *   target
  *     Merchant account that receives the payment. Maps to PaymentMethod.Target.
@@ -54,6 +54,9 @@
  *   isDefaultRecurring  Pre-select for recurring. Exactly one enabledRecurring entry should be true.
  *   supportsRecurring   Whether the processor supports recurring for this method.
  *                       Source: PaymentMethods[].Processors[].SupportsRecurring.
+ *                       Not a duplicate of enabledRecurring: the managed selector filters
+ *                       recurring-tab methods with `supportsRecurring && enabledRecurring`,
+ *                       so this guards against enabledRecurring being set true by mistake.
  *   displayLabel        Label shown to the payer. Defaults to paymentMethod when omitted.
  *   redirectInstruction Message shown before PSP redirect (e.g. iDEAL, Bancontact).
  *
@@ -70,8 +73,8 @@
  */
 export const PAYMENT_METHOD_CONFIG = [
     {
-        paymentMethod: 'CreditCard',
         paymentProcessor: 'PaymentHub-Stripe',
+        paymentMethod: 'CreditCard',
         target: 'Stripe-Main-Account',
         enabledOneTime: true,
         enabledRecurring: true,
@@ -99,8 +102,8 @@ export const PAYMENT_METHOD_CONFIG = [
         ]
     },
     {
-        paymentMethod: 'Ideal',
         paymentProcessor: 'PaymentHub-Stripe',
+        paymentMethod: 'Ideal',
         target: 'Stripe-Main-Account',
         enabledOneTime: true,
         enabledRecurring: false,

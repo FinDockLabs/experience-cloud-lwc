@@ -51,49 +51,40 @@
         <value>name@example.com</value>
     </labels>
 
-    <!-- Payment Form — navigation buttons -->
     <labels>
-        <fullName>ec_label_back</fullName>
+        <fullName>ec_label_amount</fullName>
         <categories>Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Back button label</shortDescription>
-        <value>Back</value>
+        <shortDescription>Amount field label</shortDescription>
+        <value>Amount</value>
     </labels>
     <labels>
-        <fullName>ec_label_next</fullName>
+        <fullName>ec_label_frequency</fullName>
         <categories>Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Next step button label</shortDescription>
-        <value>Next</value>
+        <shortDescription>Frequency selector label</shortDescription>
+        <value>Frequency</value>
+    </labels>
+    <labels>
+        <fullName>ec_label_frequency_one_time</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Frequency option: one-time payment</shortDescription>
+        <value>One-time</value>
+    </labels>
+    <labels>
+        <fullName>ec_label_frequency_recurring</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Frequency option: recurring payment</shortDescription>
+        <value>Monthly</value>
     </labels>
 
     <!-- Payment Form — screen reader / assistive text -->
-    <labels>
-        <fullName>ec_sr_step_amount_frequency</fullName>
-        <categories>Accessibility</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Assistive heading for the Amount and Frequency step</shortDescription>
-        <value>Amount and Frequency</value>
-    </labels>
-    <labels>
-        <fullName>ec_sr_step_personal_info</fullName>
-        <categories>Accessibility</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Assistive heading for the Personal Information step</shortDescription>
-        <value>Personal Information</value>
-    </labels>
-    <labels>
-        <fullName>ec_sr_step_payment_method</fullName>
-        <categories>Accessibility</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Assistive heading for the Payment Method step</shortDescription>
-        <value>Payment Method</value>
-    </labels>
     <labels>
         <fullName>ec_sr_personal_info_group</fullName>
         <categories>Accessibility</categories>
@@ -103,12 +94,12 @@
         <value>Personal Information</value>
     </labels>
     <labels>
-        <fullName>ec_sr_progress_step_announcement</fullName>
+        <fullName>ec_sr_amount_group</fullName>
         <categories>Accessibility</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Step announcement: step number, total steps, step name</shortDescription>
-        <value>Step {0} of {1}: {2}</value>
+        <shortDescription>Fieldset legend for the amount and frequency group</shortDescription>
+        <value>Amount and Frequency</value>
     </labels>
 
     <!-- Payment Form — configuration errors -->
