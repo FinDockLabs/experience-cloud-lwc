@@ -8,6 +8,8 @@ Use this repo when you need full code control over your form's UX — layout, va
 
 ## Deploy
 
+Note: deploys example LWC wrapper around FinDock's components. Both out of the box components are part of the FinDock managed package and can be used without the code in this repository.
+
 [![Deploy to Salesforce](https://app.jdeploy.cloud/images/flat.svg)](https://app.jdeploy.cloud/github/FinDockLabs/experience-cloud-lwc/main)
 
 ## Components
