@@ -7,8 +7,8 @@ import EC_LABEL_FIRST_NAME from '@salesforce/label/c.ec_label_first_name';
 import EC_LABEL_LAST_NAME from '@salesforce/label/c.ec_label_last_name';
 import EC_LABEL_EMAIL_ADDRESS from '@salesforce/label/c.ec_label_email_address';
 import EC_LABEL_AMOUNT from '@salesforce/label/c.ec_label_amount';
-import EC_ERROR_PAYMENT_GENERIC from '@salesforce/label/c.ec_error_payment_generic';
-import EC_ERROR_PAYMENT_CONFIG from '@salesforce/label/c.ec_error_payment_config';
+const ERROR_LABEL_GENERIC = 'We could not process your payment.';
+const ERROR_LABEL_CONFIG = 'This payment method is not available right now.';
 
 function createComponent(props = {}) {
     const element = createElement('c-payment-form', { is: PaymentForm });
@@ -346,19 +346,19 @@ describe('paymentForm', () => {
             const element = createComponent();
             await dispatchPaymentResult(element, {
                 statusCode: 422,
-                errorLabel: EC_ERROR_PAYMENT_CONFIG,
+                errorLabel: ERROR_LABEL_CONFIG,
                 errorMessage: 'Required fields are missing: [SourceConnector]'
             });
             const banner = element.shadowRoot.querySelector('.payment-error-banner');
             expect(banner).not.toBeNull();
-            expect(banner.textContent).toContain(EC_ERROR_PAYMENT_CONFIG);
+            expect(banner.textContent).toContain(ERROR_LABEL_CONFIG);
         });
 
         it('never renders the raw error message when there is no field-level code', async () => {
             const element = createComponent();
             await dispatchPaymentResult(element, {
                 statusCode: 422,
-                errorLabel: EC_ERROR_PAYMENT_GENERIC,
+                errorLabel: ERROR_LABEL_GENERIC,
                 errorMessage: 'IBAN invalid: NL13TEST0123456789'
             });
             expect(element.shadowRoot.querySelector('.payment-error-banner').textContent).not.toContain('NL13TEST0123456789');
@@ -368,7 +368,7 @@ describe('paymentForm', () => {
             const element = createComponent();
             await dispatchPaymentResult(element, {
                 statusCode: 422,
-                errorLabel: EC_ERROR_PAYMENT_GENERIC,
+                errorLabel: ERROR_LABEL_GENERIC,
                 errorMessage: 'IBAN invalid'
             });
             expect(element.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
@@ -394,7 +394,7 @@ describe('paymentForm', () => {
             await dispatchPaymentResult(element, {
                 statusCode: 422,
                 errorCode: '998',
-                errorLabel: EC_ERROR_PAYMENT_CONFIG,
+                errorLabel: ERROR_LABEL_CONFIG,
                 errorMessage: 'No default setup record found for category PSP'
             });
             const details = element.shadowRoot.querySelectorAll('.payment-error-banner__detail');
