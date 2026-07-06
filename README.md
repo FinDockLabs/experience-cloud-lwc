@@ -4,8 +4,6 @@ This repository contains building blocks to help you build custom Lightning Web 
 
 This is the code-first alternative to using our managed LWCs directly in Flows. For other options, see [Templates for FinDock Payment Experiences](https://github.com/FinDockLabs/experience-cloud-templates). 
 
-Use this repo when you need full code control over your form's UX — layout, validation, field composition — while still relying on FinDock's managed `cpm-payment-method-selector` and `cpm-pay-button` components for payment method selection and PaymentIntent submission.
-
 ## Deploy
 
 Note: deploys example LWC wrapper around FinDock's components. Both out of the box components are part of the FinDock managed package and can be used without the code in this repository.
