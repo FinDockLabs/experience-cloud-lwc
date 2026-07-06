@@ -100,17 +100,6 @@
         <shortDescription>Error shown when a config entry is missing a required field</shortDescription>
         <value>Payment method configuration entry is missing required field: {0}. Check paymentMethodConfiguration.js.</value>
     </labels>
-
-    <!-- Payment errors -->
-    <labels>
-        <fullName>ec_error_invalid_name</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Validation message shown when a name field contains only whitespace</shortDescription>
-        <value>Please enter a valid name.</value>
-    </labels>
-
     <!-- Debug -->
     <labels>
         <fullName>ec_debug_error_title</fullName>
