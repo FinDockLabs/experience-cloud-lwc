@@ -138,38 +138,6 @@
 
     <!-- Payment errors -->
     <labels>
-        <fullName>ec_error_payment_recoverable</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Banner heading for recoverable bank-detail errors (IBAN, BIC, sort code)</shortDescription>
-        <value>Please review the highlighted payment details below.</value>
-    </labels>
-    <labels>
-        <fullName>ec_error_payment_invalid_data</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Banner heading when submitted data is invalid (e.g. e-mail address)</shortDescription>
-        <value>Please double-check the information you entered and try again.</value>
-    </labels>
-    <labels>
-        <fullName>ec_error_payment_config</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Banner heading when the payment method is misconfigured/unavailable</shortDescription>
-        <value>This payment method isn't available right now. Please try again later or choose a different method.</value>
-    </labels>
-    <labels>
-        <fullName>ec_error_payment_generic</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Generic banner heading for a payment failure with no specific category</shortDescription>
-        <value>We couldn't process your payment. Please try again.</value>
-    </labels>
-    <labels>
         <fullName>ec_error_invalid_name</fullName>
         <categories>Experience Cloud</categories>
         <language>en_US</language>
