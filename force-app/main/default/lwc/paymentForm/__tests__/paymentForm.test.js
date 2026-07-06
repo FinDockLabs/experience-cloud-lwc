@@ -215,4 +215,46 @@ describe('paymentForm', () => {
             expect(details[0].textContent).toBe('No default setup record found for category PSP');
         });
     });
+
+    describe('message scoping (groupId)', () => {
+        // The form reads its own key off the child pay button (payment-group-id).
+        function groupIdOf(element) {
+            return element.shadowRoot.querySelector('cpm-pay-button').paymentGroupId;
+        }
+
+        function publishError(groupId) {
+            publish(undefined, FINDOCK_PAYMENT_FLOW, {
+                type: PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR,
+                body: { statusCode: 422, groupId, errorLabel: ERROR_LABEL_GENERIC, errorMessage: 'boom' }
+            });
+            return Promise.resolve();
+        }
+
+        it('gives each form instance a distinct, non-empty group id', () => {
+            const a = createComponent();
+            const b = createComponent();
+            expect(groupIdOf(a)).toBeTruthy();
+            expect(groupIdOf(a)).not.toBe(groupIdOf(b));
+        });
+
+        it('shows the error only on the form it is addressed to', async () => {
+            const a = createComponent();
+            const b = createComponent();
+            await publishError(groupIdOf(a));
+            expect(a.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
+            expect(b.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
+        });
+
+        it('ignores an error addressed to a different group', async () => {
+            const a = createComponent();
+            await publishError('pf-does-not-exist');
+            expect(a.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
+        });
+
+        it('still handles a broadcast that carries no group id', async () => {
+            const a = createComponent();
+            await publishError(undefined);
+            expect(a.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
+        });
+    });
 });
