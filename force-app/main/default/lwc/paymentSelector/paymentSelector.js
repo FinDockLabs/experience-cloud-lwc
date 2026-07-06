@@ -2,6 +2,7 @@ import { LightningElement, api } from 'lwc';
 
 export default class PaymentSelector extends LightningElement {
     @api frequency = 'onetime';
+    @api paymentGroupId;
 
     _config;
     _enrichedConfig = null;

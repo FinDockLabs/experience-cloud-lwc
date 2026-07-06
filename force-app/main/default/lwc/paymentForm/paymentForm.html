@@ -101,13 +101,14 @@
             <c-payment-selector
                 config={paymentMethodConfig}
                 frequency={frequency}
+                payment-group-id={paymentGroupId}
                 onpaymentmethodchanged={handlePaymentMethodChanged}>
             </c-payment-selector>
-            <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled}></cpm-pay-button>
+            <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} payment-group-id={paymentGroupId}></cpm-pay-button>
         </div>
     </div>
 
-    <template lwc:if={hasPaymentError}>
+    <template lwc:if={showPaymentErrorBanner}>
         <div class="payment-error-banner" role="alert">
             <lightning-icon icon-name="utility:error"
                             variant="error"

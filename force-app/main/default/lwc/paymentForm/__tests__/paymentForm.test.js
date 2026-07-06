@@ -8,9 +8,7 @@ import EC_LABEL_LAST_NAME from '@salesforce/label/c.ec_label_last_name';
 import EC_LABEL_EMAIL_ADDRESS from '@salesforce/label/c.ec_label_email_address';
 import EC_LABEL_AMOUNT from '@salesforce/label/c.ec_label_amount';
 import EC_ERROR_PAYMENT_GENERIC from '@salesforce/label/c.ec_error_payment_generic';
-import EC_ERROR_PAYMENT_RECOVERABLE from '@salesforce/label/c.ec_error_payment_recoverable';
 import EC_ERROR_PAYMENT_CONFIG from '@salesforce/label/c.ec_error_payment_config';
-import EC_ERROR_PAYMENT_INVALID_DATA from '@salesforce/label/c.ec_error_payment_invalid_data';
 
 function createComponent(props = {}) {
     const element = createElement('c-payment-form', { is: PaymentForm });
@@ -344,123 +342,64 @@ describe('paymentForm', () => {
             expect(element.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
         });
 
-        it('shows a generic error banner when the pay button reports an error', async () => {
+        it('shows the server-provided category message in the banner heading', async () => {
             const element = createComponent();
-            await dispatchPaymentResult(element, { statusCode: 422, errorMessage: 'IBAN invalid: NL13TEST0123456789' });
+            await dispatchPaymentResult(element, {
+                statusCode: 422,
+                errorLabel: EC_ERROR_PAYMENT_CONFIG,
+                errorMessage: 'Required fields are missing: [SourceConnector]'
+            });
             const banner = element.shadowRoot.querySelector('.payment-error-banner');
             expect(banner).not.toBeNull();
-            expect(banner.textContent).toContain(EC_ERROR_PAYMENT_GENERIC);
+            expect(banner.textContent).toContain(EC_ERROR_PAYMENT_CONFIG);
         });
 
-        it('never renders the raw error message from the payment intent response', async () => {
+        it('never renders the raw error message when there is no field-level code', async () => {
             const element = createComponent();
-            await dispatchPaymentResult(element, { statusCode: 422, errorMessage: 'IBAN invalid: NL13TEST0123456789' });
+            await dispatchPaymentResult(element, {
+                statusCode: 422,
+                errorLabel: EC_ERROR_PAYMENT_GENERIC,
+                errorMessage: 'IBAN invalid: NL13TEST0123456789'
+            });
             expect(element.shadowRoot.querySelector('.payment-error-banner').textContent).not.toContain('NL13TEST0123456789');
         });
 
         it('clears the error banner when a new payment attempt starts', async () => {
             const element = createComponent();
-            await dispatchPaymentResult(element, { statusCode: 422, errorMessage: 'IBAN invalid' });
+            await dispatchPaymentResult(element, {
+                statusCode: 422,
+                errorLabel: EC_ERROR_PAYMENT_GENERIC,
+                errorMessage: 'IBAN invalid'
+            });
             expect(element.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
 
             await startPaymentAttempt();
             expect(element.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
         });
 
-        it('shows the recoverable-field message for a bank detail error code (e.g. invalid IBAN)', async () => {
+        it('hides the summary banner when the error is field-level (the field shows the message)', async () => {
             const element = createComponent();
             await dispatchPaymentResult(element, {
                 statusCode: 422,
-                errorMessage: 'IBAN NL00 is not valid',
-                errors: [{ code: '202', message: 'IBAN NL00 is not valid' }]
+                errorCode: '202',
+                errorMessage: 'The provided IBAN is not valid'
             });
-            expect(element.shadowRoot.querySelector('.payment-error-banner').textContent)
-                .toContain(EC_ERROR_PAYMENT_RECOVERABLE);
-        });
-
-        it('does NOT repeat a field-level message in the banner (it is shown on the field instead)', async () => {
-            const element = createComponent();
-            await dispatchPaymentResult(element, {
-                statusCode: 422,
-                errorMessage: 'The provided IBAN is not valid',
-                errors: [{ code: '202', message: 'The provided IBAN is not valid' }]
-            });
-            // 202 maps to the IBAN field, so its message shows on the field, not as a banner bullet.
-            expect(element.shadowRoot.querySelectorAll('.payment-error-banner__detail')).toHaveLength(0);
+            // 202 maps to the IBAN field, so its message shows inline on the field;
+            // the redundant summary banner is suppressed entirely.
+            expect(element.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
         });
 
         it('shows the specific message in the banner for a non-field-level error', async () => {
             const element = createComponent();
             await dispatchPaymentResult(element, {
                 statusCode: 422,
-                errorMessage: 'No default setup record found for category PSP',
-                errors: [{ code: '998', message: 'No default setup record found for category PSP' }]
+                errorCode: '998',
+                errorLabel: EC_ERROR_PAYMENT_CONFIG,
+                errorMessage: 'No default setup record found for category PSP'
             });
             const details = element.shadowRoot.querySelectorAll('.payment-error-banner__detail');
             expect(details).toHaveLength(1);
             expect(details[0].textContent).toBe('No default setup record found for category PSP');
-        });
-
-        it('lists only the non-field-level messages when field and non-field errors are mixed', async () => {
-            const element = createComponent();
-            await dispatchPaymentResult(element, {
-                statusCode: 422,
-                errorMessage: 'IBAN invalid, and something else',
-                errors: [
-                    { code: '202', message: 'The provided IBAN is not valid' },
-                    { code: '999', message: 'Something else went wrong' }
-                ]
-            });
-            const details = element.shadowRoot.querySelectorAll('.payment-error-banner__detail');
-            expect(details).toHaveLength(1);
-            expect(details[0].textContent).toBe('Something else went wrong');
-        });
-
-        it('shows the configuration message for a missing mandatory field code', async () => {
-            const element = createComponent();
-            await dispatchPaymentResult(element, {
-                statusCode: 422,
-                errorMessage: 'Required fields are missing: [SourceConnector]',
-                errors: [{ code: '011', message: 'Required fields are missing: [SourceConnector]' }]
-            });
-            expect(element.shadowRoot.querySelector('.payment-error-banner').textContent)
-                .toContain(EC_ERROR_PAYMENT_CONFIG);
-        });
-
-        it('shows the invalid-data message for a bad-data code (e.g. invalid email)', async () => {
-            const element = createComponent();
-            await dispatchPaymentResult(element, {
-                statusCode: 422,
-                errorMessage: 'Contact error: Email is invalid',
-                errors: [{ code: '200', message: 'Contact error: Email is invalid' }]
-            });
-            expect(element.shadowRoot.querySelector('.payment-error-banner').textContent)
-                .toContain(EC_ERROR_PAYMENT_INVALID_DATA);
-        });
-
-        it('falls back to the generic message for an unrecognized error code', async () => {
-            const element = createComponent();
-            await dispatchPaymentResult(element, {
-                statusCode: 422,
-                errorMessage: 'Unexpected failure',
-                errors: [{ code: '999', message: 'Unexpected failure' }]
-            });
-            expect(element.shadowRoot.querySelector('.payment-error-banner').textContent)
-                .toContain(EC_ERROR_PAYMENT_GENERIC);
-        });
-
-        it('prioritizes the recoverable message when both a recoverable and a generic code are present', async () => {
-            const element = createComponent();
-            await dispatchPaymentResult(element, {
-                statusCode: 422,
-                errorMessage: 'IBAN invalid, unexpected failure',
-                errors: [
-                    { code: '999', message: 'unexpected failure' },
-                    { code: '202', message: 'IBAN invalid' }
-                ]
-            });
-            expect(element.shadowRoot.querySelector('.payment-error-banner').textContent)
-                .toContain(EC_ERROR_PAYMENT_RECOVERABLE);
         });
     });
 });
