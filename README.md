@@ -12,10 +12,10 @@ Note: deploys example LWC wrapper around FinDock's components. Both out of the b
 
 ## Components
 
-| Component | Tag | Exposed | Purpose |
-| --- | --- | --- | --- |
-| `paymentForm` | `c-payment-form` | Yes | Drop-in payment form. Replaces a payment Screen Flow. Configurable via Experience Builder design properties. |
-| `paymentSelector` | `c-payment-selector` | No | Pro-code wrapper around `cpm-payment-method-selector`. Accepts a simplified flat config and enriches it internally. Used by `paymentForm`; can also be embedded directly in custom LWC forms. |
+| Component | Tag | Exposed | Purpose                                                                                                                                                                                                                                                                                   |
+| --- | --- | --- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `paymentForm` | `c-payment-form` | Yes | Drop-in payment form component that includes both `c-payment-selector` and `cpm-pay-button`. Replaces a payment Screen Flow. Configurable via Experience Builder design properties.
+| `paymentSelector` | `c-payment-selector` | No | Pro-code wrapper around `cpm-payment-method-selector`. Accepts a simplified flat config and enriches it internally. Used by `paymentForm`; can also be embedded directly in custom LWC forms.                                                                                             |
 
 ### `c-payment-form` — Design Properties
 
