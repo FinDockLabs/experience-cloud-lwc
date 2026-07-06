@@ -48,11 +48,10 @@ describe('c-payment-form WCAG 2.2 AA accessibility', () => {
         await expect(element).toBeAccessible();
     });
 
-    // ── 3. showFrequency=false — no frequency toggle visible ─────────────────────
+    // ── 3. Recurring configuration — read-only summary ───────────────────────────
     // Covers: WCAG 1.3.1 Info and Relationships
-    // Hiding the frequency toggle should not introduce broken ARIA relationships.
-    it('passes axe scan when frequency toggle is hidden', async () => {
-        const element = createComponent({ showFrequency: false });
+    it('passes axe scan for a recurring configuration', async () => {
+        const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
         await Promise.resolve();
         await expect(element).toBeAccessible();
     });
@@ -65,7 +64,7 @@ describe('c-payment-form WCAG 2.2 AA accessibility', () => {
         const element = createComponent();
         publish(undefined, FINDOCK_PAYMENT_FLOW, {
             type: PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR,
-            body: { statusCode: 422, errorMessage: 'IBAN invalid' }
+            body: { statusCode: 422, errorLabel: 'We could not process your payment.', errorMessage: 'IBAN invalid' }
         });
         await Promise.resolve();
 

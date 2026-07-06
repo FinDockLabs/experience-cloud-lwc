@@ -6,7 +6,6 @@ import { PAYMENT_FLOW_MESSAGE_TYPES } from 'cpm/paymentFlowChannel';
 import EC_LABEL_FIRST_NAME from '@salesforce/label/c.ec_label_first_name';
 import EC_LABEL_LAST_NAME from '@salesforce/label/c.ec_label_last_name';
 import EC_LABEL_EMAIL_ADDRESS from '@salesforce/label/c.ec_label_email_address';
-import EC_LABEL_AMOUNT from '@salesforce/label/c.ec_label_amount';
 const ERROR_LABEL_GENERIC = 'We could not process your payment.';
 const ERROR_LABEL_CONFIG = 'This payment method is not available right now.';
 
@@ -17,28 +16,9 @@ function createComponent(props = {}) {
     return element;
 }
 
-function typeAmount(element, rawValue) {
-    const input = element.shadowRoot.querySelector('.slds-input');
-    input.value = rawValue;
-    input.dispatchEvent(new CustomEvent('input'));
-    return input;
-}
-
-function blurAmountField(element) {
-    const input = element.shadowRoot.querySelector('.slds-input');
-    input.dispatchEvent(new CustomEvent('blur'));
-    return input;
-}
-
-function focusAmountField(element) {
-    const input = element.shadowRoot.querySelector('.slds-input');
-    input.dispatchEvent(new CustomEvent('focus'));
-    return input;
-}
-
-function setFrequency(element, value) {
-    element.shadowRoot.querySelector(`input[type="radio"][value="${value}"]`).dispatchEvent(
-        new CustomEvent('change')
+function setField(element, field, value) {
+    element.shadowRoot.querySelector(`lightning-input[data-field="${field}"]`).dispatchEvent(
+        new CustomEvent('change', { detail: { value } })
     );
 }
 
@@ -51,276 +31,111 @@ afterEach(() => {
 
 describe('paymentForm', () => {
     describe('rendering', () => {
-        it('renders all sections at once', () => {
-            const element = createComponent();
-            expect(element.shadowRoot.querySelector('.slds-input')).not.toBeNull();
+        it('renders the read-only summary, contact inputs, selector and pay button', () => {
+            const element = createComponent({ amount: 25 });
+            expect(element.shadowRoot.querySelector('.payment-summary')).not.toBeNull();
             expect(element.shadowRoot.querySelectorAll('lightning-input')).toHaveLength(3);
             expect(element.shadowRoot.querySelector('c-payment-selector')).not.toBeNull();
             expect(element.shadowRoot.querySelector('cpm-pay-button')).not.toBeNull();
         });
-    });
 
-    describe('event handlers', () => {
-        it('updates the pay button state for a recurring amount', async () => {
-            const element = createComponent();
-            setFrequency(element, 'recurring');
-            typeAmount(element, '10');
-            await Promise.resolve();
-            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
-            expect(payBtn.paymentIntent.Recurring.Amount).toBe('10');
-        });
-
-        it('handleFieldChange updates the field bound to data-field', async () => {
-            const element = createComponent();
-            element.shadowRoot.querySelector('lightning-input[data-field="firstName"]').dispatchEvent(
-                new CustomEvent('change', { detail: { value: 'Jane' } })
-            );
-            await Promise.resolve();
-            // Component is still stable and rendered correctly
-            expect(element.shadowRoot.querySelector('lightning-input[data-field="firstName"]')).not.toBeNull();
-        });
-
-        it('handlePaymentMethodChanged is called when payment-selector emits', async () => {
-            const element = createComponent();
-            element.shadowRoot.querySelector('c-payment-selector').dispatchEvent(
-                new CustomEvent('paymentmethodchanged', {
-                    detail: { name: 'CreditCard', processor: 'PaymentHub-Stripe', target: 'Stripe-Main-Account' },
-                    bubbles: true,
-                    composed: true
-                })
-            );
-            await Promise.resolve();
-            expect(element.shadowRoot.querySelector('cpm-pay-button')).not.toBeNull();
-        });
-    });
-
-    describe('frequency toggle', () => {
-        it('hides the frequency selector when showFrequency is false', () => {
-            const element = createComponent({ showFrequency: false });
+        it('does not render an amount input or a frequency toggle', () => {
+            const element = createComponent({ amount: 25 });
+            expect(element.shadowRoot.querySelector('.slds-input')).toBeNull();
             expect(element.shadowRoot.querySelector('.frequency-toggle')).toBeNull();
         });
+    });
 
-        it('shows the frequency selector when showFrequency is true', () => {
-            const element = createComponent({ showFrequency: true });
-            expect(element.shadowRoot.querySelector('.frequency-toggle')).not.toBeNull();
+    describe('admin-configured amount and frequency (read-only)', () => {
+        it('shows the admin amount, currency-formatted', () => {
+            const element = createComponent({ amount: 1000, currency: 'USD' });
+            const amount = element.shadowRoot.querySelector('.payment-summary__amount').textContent;
+            expect(amount).toContain('1,000');
+            expect(amount).toContain('$');
         });
 
-        it('pre-selects defaultFrequency when the form loads (legacy code)', () => {
-            const element = createComponent({ defaultFrequency: 'recurring' });
-            expect(element.shadowRoot.querySelector('input[value="recurring"]').checked).toBe(true);
-            expect(element.shadowRoot.querySelector('input[value="oneTime"]').checked).toBe(false);
-        });
-
-        it('pre-selects defaultFrequency from the App Builder "Monthly" option', () => {
-            const element = createComponent({ defaultFrequency: 'Monthly' });
-            expect(element.shadowRoot.querySelector('input[value="recurring"]').checked).toBe(true);
-            expect(element.shadowRoot.querySelector('input[value="oneTime"]').checked).toBe(false);
-        });
-
-        it('pre-selects defaultFrequency from the App Builder "One time" option', () => {
-            const element = createComponent({ defaultFrequency: 'One time' });
-            expect(element.shadowRoot.querySelector('input[value="oneTime"]').checked).toBe(true);
-            expect(element.shadowRoot.querySelector('input[value="recurring"]').checked).toBe(false);
+        it('renders a frequency label the payer cannot change', () => {
+            const element = createComponent({ amount: 10, defaultFrequency: 'Monthly' });
+            expect(element.shadowRoot.querySelector('.payment-summary__frequency').textContent.trim()).not.toBe('');
         });
     });
 
-    describe('default amount', () => {
-        it('pre-fills the amount field from the amount property', () => {
-            const element = createComponent({ amount: 25 });
-            const amountInput = element.shadowRoot.querySelector('.slds-input');
-            expect(amountInput.value).toBe('25');
-        });
-
-        it('formats a pre-filled default amount with grouping separators on initial render', () => {
-            const element = createComponent({ amount: 1000 });
-            const amountInput = element.shadowRoot.querySelector('.slds-input');
-            expect(amountInput.value).toBe('1,000');
-        });
-
-        it('still submits the unformatted default amount in the payment intent', async () => {
-            const element = createComponent({ amount: 1000 });
-            setFrequency(element, 'oneTime');
-            element.shadowRoot.querySelector('lightning-input[data-field="firstName"]').dispatchEvent(
-                new CustomEvent('change', { detail: { value: 'Jane' } })
-            );
+    describe('payment intent context', () => {
+        it('builds the intent from the configured amount as soon as it renders', async () => {
+            const element = createComponent({ amount: 50, defaultFrequency: 'One time' });
             await Promise.resolve();
             const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
-            expect(payBtn.paymentIntent.OneTime.Amount).toBe('1000');
+            expect(payBtn.paymentIntent.OneTime.Amount).toBe('50');
+        });
+
+        it('includes the payer contact fields as they are entered', async () => {
+            const element = createComponent({ amount: 50 });
+            setField(element, 'firstName', 'Jane');
+            setField(element, 'lastName', 'Doe');
+            setField(element, 'email', 'jane@example.com');
+            await Promise.resolve();
+            const contact = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.Payer.Contact.SalesforceFields;
+            expect(contact.FirstName).toBe('Jane');
+            expect(contact.LastName).toBe('Doe');
+            expect(contact.Email).toBe('jane@example.com');
+        });
+
+        it('uses the OneTime block when the admin frequency is one-time', async () => {
+            const element = createComponent({ amount: 50, defaultFrequency: 'One time' });
+            await Promise.resolve();
+            const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+            expect(intent.OneTime.Amount).toBe('50');
+            expect(intent.Recurring).toBeUndefined();
+        });
+
+        it('uses the Recurring block (Monthly, starting today) when the admin frequency is recurring', async () => {
+            const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
+            await Promise.resolve();
+            const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+            const today = new Date();
+            const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            expect(intent.Recurring.Amount).toBe('15');
+            expect(intent.Recurring.Frequency).toBe('Monthly');
+            expect(intent.Recurring.StartDate).toBe(expected);
+            expect(intent.OneTime).toBeUndefined();
+        });
+
+        it('passes the configured currency to the intent', async () => {
+            const element = createComponent({ amount: 10, currency: 'USD', defaultFrequency: 'One time' });
+            await Promise.resolve();
+            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.OneTime.CurrencyISOCode).toBe('USD');
         });
     });
 
     describe('accessibility structure', () => {
-        it('personal information inputs are wrapped in a fieldset with legend', () => {
-            const element = createComponent();
-            expect(element.shadowRoot.querySelectorAll('fieldset')).toHaveLength(3);
-            expect(element.shadowRoot.querySelectorAll('legend')).toHaveLength(3);
+        it('groups the contact and payment-method sections in fieldsets with visible legends', () => {
+            const element = createComponent({ amount: 25 });
+            const legends = element.shadowRoot.querySelectorAll('fieldset > legend.section-header');
+            expect(element.shadowRoot.querySelectorAll('fieldset')).toHaveLength(2);
+            expect(legends).toHaveLength(2);
         });
     });
 
     describe('label rendering', () => {
         it('renders First Name label on the first input', () => {
             const element = createComponent();
-            const firstNameInput = element.shadowRoot.querySelector('lightning-input[data-field="firstName"]');
-            expect(firstNameInput.label).toBe(EC_LABEL_FIRST_NAME);
+            expect(element.shadowRoot.querySelector('lightning-input[data-field="firstName"]').label).toBe(EC_LABEL_FIRST_NAME);
         });
 
         it('renders Last Name label on the second input', () => {
             const element = createComponent();
-            const lastNameInput = element.shadowRoot.querySelector('lightning-input[data-field="lastName"]');
-            expect(lastNameInput.label).toBe(EC_LABEL_LAST_NAME);
+            expect(element.shadowRoot.querySelector('lightning-input[data-field="lastName"]').label).toBe(EC_LABEL_LAST_NAME);
         });
 
         it('renders Email Address label on the email input', () => {
             const element = createComponent();
-            const emailInput = element.shadowRoot.querySelector('lightning-input[data-field="email"]');
-            expect(emailInput.label).toBe(EC_LABEL_EMAIL_ADDRESS);
-        });
-
-        it('renders Amount label for the amount input', () => {
-            const element = createComponent();
-            const label = element.shadowRoot.querySelector('.slds-form-element__label');
-            expect(label.textContent).toContain(EC_LABEL_AMOUNT);
-            expect(label.getAttribute('for')).toBe(element.shadowRoot.querySelector('.slds-input').id);
-        });
-    });
-
-    describe('currency addon', () => {
-        it('shows the symbol for the configured currency in a single SLDS addon', () => {
-            const element = createComponent({ currency: 'USD' });
-            const addons = element.shadowRoot.querySelectorAll('.slds-form-element__addon');
-            expect(addons).toHaveLength(1);
-            expect(addons[0].textContent).toBe('$');
-        });
-
-        it('falls back to the default currency symbol when none is configured', () => {
-            const element = createComponent();
-            const addons = element.shadowRoot.querySelectorAll('.slds-form-element__addon');
-            expect(addons).toHaveLength(1);
-            expect(addons[0].textContent).toBe('€');
-        });
-    });
-
-    describe('amount input filtering', () => {
-        it('strips +, -, and other non-numeric characters as they are typed', () => {
-            const element = createComponent();
-            const input = typeAmount(element, '+++++---55543322224......');
-            expect(input.value).toBe('55543322224.');
-        });
-
-        it('does not allow a leading minus sign', () => {
-            const element = createComponent();
-            const input = typeAmount(element, '-10');
-            expect(input.value).toBe('10');
-        });
-
-        it('collapses multiple decimal points into one', () => {
-            const element = createComponent();
-            const input = typeAmount(element, '1.2.3');
-            expect(input.value).toBe('1.23');
-        });
-
-        it("limits decimal places to what the currency supports (2 for USD)", () => {
-            const element = createComponent({ currency: 'USD' });
-            const input = typeAmount(element, '10.123456');
-            expect(input.value).toBe('10.12');
-        });
-
-        it('disallows any decimal point for a zero-decimal currency like JPY', () => {
-            const element = createComponent({ currency: 'JPY' });
-            const input = typeAmount(element, '1000.7');
-            expect(input.value).toBe('1000');
-        });
-    });
-
-    describe('digit-group separators', () => {
-        it('formats the amount with grouping separators on blur', () => {
-            const element = createComponent();
-            typeAmount(element, '1000');
-            const input = blurAmountField(element);
-            expect(input.value).toBe('1,000');
-        });
-
-        it('shows the raw, unformatted value again when the field is refocused', () => {
-            const element = createComponent();
-            typeAmount(element, '1000');
-            blurAmountField(element);
-            const input = focusAmountField(element);
-            expect(input.value).toBe('1000');
-        });
-
-        it('does not change the underlying amount used in the payment intent', async () => {
-            const element = createComponent();
-            setFrequency(element, 'oneTime');
-            typeAmount(element, '1000');
-            blurAmountField(element);
-            await Promise.resolve();
-            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
-            expect(payBtn.paymentIntent.OneTime.Amount).toBe('1000');
-        });
-    });
-
-    describe('payment intent context', () => {
-        it('passes updated payment intent to cpm-pay-button when fields change', async () => {
-            const element = createComponent();
-            setFrequency(element, 'oneTime');
-            typeAmount(element, '50');
-            element.shadowRoot.querySelector('lightning-input[data-field="firstName"]').dispatchEvent(
-                new CustomEvent('change', { detail: { value: 'Jane' } })
-            );
-            element.shadowRoot.querySelector('lightning-input[data-field="lastName"]').dispatchEvent(
-                new CustomEvent('change', { detail: { value: 'Doe' } })
-            );
-            element.shadowRoot.querySelector('lightning-input[data-field="email"]').dispatchEvent(
-                new CustomEvent('change', { detail: { value: 'jane@example.com' } })
-            );
-            await Promise.resolve();
-            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
-            expect(payBtn.paymentIntent.Payer.Contact.SalesforceFields.FirstName).toBe('Jane');
-            expect(payBtn.paymentIntent.Payer.Contact.SalesforceFields.LastName).toBe('Doe');
-            expect(payBtn.paymentIntent.OneTime.Amount).toBe('50');
-        });
-
-        it('sets Recurring amount in payment intent when frequency is recurring', async () => {
-            const element = createComponent();
-            setFrequency(element, 'recurring');
-            typeAmount(element, '15');
-            await Promise.resolve();
-            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
-            expect(payBtn.paymentIntent.Recurring.Amount).toBe('15');
-            expect(payBtn.paymentIntent.OneTime).toBeUndefined();
-        });
-
-        it('passes currency to payment intent', async () => {
-            const element = createComponent({ currency: 'USD' });
-            setFrequency(element, 'oneTime');
-            typeAmount(element, '10');
-            await Promise.resolve();
-            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.OneTime.CurrencyISOCode).toBe('USD');
-        });
-
-        it('sets Recurring.Frequency to Monthly', async () => {
-            const element = createComponent();
-            setFrequency(element, 'recurring');
-            typeAmount(element, '15');
-            await Promise.resolve();
-            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.Recurring.Frequency).toBe('Monthly');
-        });
-
-        it('sets Recurring.StartDate to today in yyyy-mm-dd format', async () => {
-            const element = createComponent();
-            setFrequency(element, 'recurring');
-            typeAmount(element, '15');
-            await Promise.resolve();
-            const today = new Date();
-            const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.Recurring.StartDate).toBe(expected);
+            expect(element.shadowRoot.querySelector('lightning-input[data-field="email"]').label).toBe(EC_LABEL_EMAIL_ADDRESS);
         });
     });
 
     describe('payment error', () => {
         // Errors reach the form as PAYMENT_ERROR messages on the findockPaymentFlow
-        // channel (published by the Pay Button), replacing the old Flow result
-        // input/output variable.
+        // channel (published by the Pay Button).
         function dispatchPaymentResult(element, body) {
             publish(undefined, FINDOCK_PAYMENT_FLOW, {
                 type: PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR,
@@ -368,7 +183,7 @@ describe('paymentForm', () => {
             const element = createComponent();
             await dispatchPaymentResult(element, {
                 statusCode: 422,
-                errorLabel: ERROR_LABEL_GENERIC,
+                errorLabel: ERROR_LABEL_CONFIG,
                 errorMessage: 'IBAN invalid'
             });
             expect(element.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
@@ -384,8 +199,6 @@ describe('paymentForm', () => {
                 errorCode: '202',
                 errorMessage: 'The provided IBAN is not valid'
             });
-            // 202 maps to the IBAN field, so its message shows inline on the field;
-            // the redundant summary banner is suppressed entirely.
             expect(element.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
         });
 

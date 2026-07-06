@@ -10,64 +10,13 @@
                 </div>
             </template>
 
-            <fieldset class="form-section slds-form slds-form_stacked">
-                <legend class="visually-hidden">{labels.ec_sr_amount_group}</legend>
-                <div class="slds-form-element">
-                    <label class="slds-form-element__label" for={amountInputId}>
-                        <abbr class="slds-required" title="required">*</abbr>{labels.ec_label_amount}
-                    </label>
-                    <div class="slds-form-element__control slds-input-has-fixed-addon">
-                        <template lwc:if={symbolBefore}>
-                            <span class="slds-form-element__addon">{currencySymbol}</span>
-                        </template>
-                        <input type="text"
-                               inputmode="decimal"
-                               autocomplete="transaction-amount"
-                               id={amountInputId}
-                               class="slds-input"
-                               value={amountValue}
-                               required
-                               oninput={handleAmountInput}
-                               onblur={handleAmountBlur}
-                               onfocus={handleAmountFocus} />
-                        <template lwc:if={symbolAfter}>
-                            <span class="slds-form-element__addon">{currencySymbol}</span>
-                        </template>
-                    </div>
-                </div>
-                <template lwc:if={shouldShowFrequency}>
-                    <fieldset class="frequency-toggle">
-                        <legend class="visually-hidden">{labels.ec_label_frequency}</legend>
-                        <input type="radio"
-                               id={oneTimeFrequencyId}
-                               name={frequencyGroupName}
-                               value="oneTime"
-                               class="visually-hidden"
-                               checked={isOneTimeFrequencySelected}
-                               onchange={handleFrequencyChange} />
-                        <label for={oneTimeFrequencyId} class="toggle-option">{labels.ec_label_frequency_one_time}</label>
-
-                        <input type="radio"
-                               id={recurringFrequencyId}
-                               name={frequencyGroupName}
-                               value="recurring"
-                               class="visually-hidden"
-                               checked={isRecurringFrequencySelected}
-                               onchange={handleFrequencyChange} />
-                        <label for={recurringFrequencyId} class="toggle-option">
-                            <lightning-icon icon-name="utility:heart"
-                                            size="x-small"
-                                            class="monthly-icon"
-                                            aria-hidden="true">
-                            </lightning-icon>
-                            {labels.ec_label_frequency_recurring}
-                        </label>
-                    </fieldset>
-                </template>
-            </fieldset>
+            <div class="payment-summary">
+                <p class="payment-summary__amount">{formattedAmount}</p>
+                <p class="payment-summary__frequency">{frequencyLabel}</p>
+            </div>
 
             <fieldset class="form-section slds-form slds-form_stacked">
-                <legend class="visually-hidden">{labels.ec_sr_personal_info_group}</legend>
+                <legend class="section-header">{labels.ec_header_personal_details}</legend>
                 <lightning-input type="text"
                                  label={labels.ec_label_first_name}
                                  placeholder={labels.ec_placeholder_first_name}
@@ -98,12 +47,15 @@
                 </lightning-input>
             </fieldset>
 
-            <c-payment-selector
-                config={paymentMethodConfig}
-                frequency={frequency}
-                payment-group-id={paymentGroupId}
-                onpaymentmethodchanged={handlePaymentMethodChanged}>
-            </c-payment-selector>
+            <fieldset class="form-section slds-form slds-form_stacked">
+                <legend class="section-header">{labels.ec_header_select_payment_method}</legend>
+                <c-payment-selector
+                    config={paymentMethodConfig}
+                    frequency={frequency}
+                    payment-group-id={paymentGroupId}
+                    onpaymentmethodchanged={handlePaymentMethodChanged}>
+                </c-payment-selector>
+            </fieldset>
             <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} payment-group-id={paymentGroupId}></cpm-pay-button>
         </div>
     </div>
