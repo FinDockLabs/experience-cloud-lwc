@@ -76,7 +76,7 @@
     box-shadow: none;
 }
 
-/* Force a stable, full-width box regardless of internal state (e.g. c-pay-button
+/* Force a stable, full-width box regardless of internal state (e.g. cpm-pay-button
    otherwise renders content-width when idle and jumps to full-width when it shows
    its own inline error banner, making the button visibly change size). */
 c-payment-selector,
