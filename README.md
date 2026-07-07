@@ -19,19 +19,17 @@ Note: deploys example LWC wrapper around FinDock's components. Both out of the b
 
 ### `c-payment-form` — Design Properties
 
+Amount and frequency are set by the admin — the payer does not enter them. The form shows them read-only and the payer only fills in their contact details and picks a payment method (a fixed-checkout model). To let the payer choose the amount, fork the form or embed `c-payment-selector` in a custom LWC with your own amount input.
+
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `currency` | String | `EUR` | ISO currency code shown next to the amount field (e.g. `EUR`, `USD`, `GBP`). |
-| `amount` | Integer | — | Default amount pre-filled in the amount field. The payer can still change it. |
-| `showFrequency` | Boolean | `true` | Show the one-time / recurring frequency toggle. |
-| `defaultFrequency` | String | `One time` | Pre-selected frequency when the form loads, shown in App Builder / Experience Builder as `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
+| `currency` | String | `EUR` | ISO currency code shown next to the amount (e.g. `EUR`, `USD`, `GBP`). |
+| `amount` | Integer | — | Amount the payer is charged. Set by the admin; shown read-only. |
+| `defaultFrequency` | String | `One time` | Payment frequency, set by the admin and shown read-only. In App Builder / Experience Builder choose `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
 
-Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only cadence supported
-today. There's no `Monthly`/`Weekly`/etc. picker; the toggle is a fixed **One-time / Monthly**
-choice. Add a configurable frequency property if another cadence is needed later.
+Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only cadence supported today. Add a configurable frequency property if another cadence is needed later. A new recurring payment also sends an initial `OneTime` charge (required by PSPs whose `InitialPaymentOnRecurring` is `required`).
 
-`Recurring.StartDate` is also required by the Payment API and is sent as today's date
-(`yyyy-mm-dd`, payer's local time) — there's no start-date picker on the form today.
+`Recurring.StartDate` is required by the Payment API and is sent as today's date (`yyyy-mm-dd`, payer's local time) — there's no start-date picker on the form today.
 
 ### `c-payment-selector` — API
 
@@ -121,10 +119,50 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 | `description` | Human-readable explanation of the parameter |
 ## How it works
 
-`c-payment-form` assembles the PaymentIntent reactively from form state (amount, frequency, personal info, selected payment method) and passes the whole object to `cpm-pay-button` via the `payment-intent` property. The managed Pay Button calls `cpm.API_PaymentIntent_V2.postPaymentIntent()` in-transaction and handles the PSP redirect — no custom Apex controller is needed.
+`c-payment-form` assembles the PaymentIntent reactively from the admin-configured amount and frequency plus form state (personal info, selected payment method) and passes the whole object to `cpm-pay-button` via the `payment-intent` property. The managed Pay Button calls `cpm.API_PaymentIntent_V2.postPaymentIntent()` in-transaction and handles the PSP redirect — no custom Apex controller is needed.
 
 The Pay Button is disabled until all required fields are filled and a payment method is selected.
 
 `c-payment-selector` wraps the managed `cpm-payment-method-selector` component. It accepts the simplified flat config from `paymentMethodConfiguration.js`, enriches it into the format the managed component expects (mapping `paymentMethod` → `name`, `paymentProcessor` → `processor`, generating the `key`, etc.), and re-fires the `paymentmethodchanged` event with `bubbles: true, composed: true` so it propagates through shadow DOM.
 
 To add pre- or post-payment Apex logic, or to change the PaymentIntent shape beyond what the component supports, fork `paymentForm` or build a custom LWC that embeds `c-payment-selector` and `cpm-pay-button` directly.
+
+## Handling payment errors
+
+When a payment fails, the managed `cpm-pay-button` broadcasts a `PAYMENT_ERROR` message on the `findockPaymentFlow` Lightning Message Channel. The classification is done server-side; the browser only receives the resolved values.
+
+**Message body**
+
+| Field | Meaning |
+| --- | --- |
+| `statusCode` | HTTP status of the PaymentIntent call. `200` on success, `422` when the request was well-formed but rejected (e.g. invalid data), other `4xx`/`5xx` on failure. |
+| `errorCode` | FinDock error code, e.g. `202` (invalid IBAN). Used to route the error to a specific payment-method input. Null when the failure has no code. |
+| `errorMessage` | Raw provider message (technical, locale-dependent). Prefer `errorLabel` for what you show the payer. |
+| `errorLabel` | Payer-facing summary message, categorised server-side from the code (recoverable bank-detail issue, configuration problem, invalid data, or generic). |
+
+See the full **Error and response codes** list in the [Payment API reference](https://docs.findock.com/api).
+
+**What the components do out of the box**
+
+- **Field-level errors** (bank-detail codes `201`–`206`) are highlighted inline on the matching input by the managed `cpm-payment-method-selector` — no code needed.
+- **Everything else** is shown by `c-payment-form` as a summary banner using `errorLabel`. When the error is field-level, the banner is suppressed so the message only appears on the field.
+
+**Extending / customising**
+
+To add your own handling (redirect to a failure page, logging, custom copy, analytics), subscribe to the channel in a custom component and branch on `errorCode` / `statusCode`:
+
+```js
+import { subscribe, MessageContext } from 'lightning/messageService';
+import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
+import { PAYMENT_FLOW_MESSAGE_TYPES } from 'cpm/paymentFlowChannel';
+
+// in connectedCallback: subscribe and dispatch on message.type
+handlePaymentFlowMessage(message) {
+    if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR) {
+        const { statusCode, errorCode, errorLabel } = message.body;
+        // e.g. show errorLabel, or redirect to your failure URL for non-recoverable errors
+    }
+}
+```
+
+Or, for post-payment handling on the button itself, read the `PaymentIntentResponseContext` returned by `cpm-pay-button` (same `statusCode` / `errorCode` / `errorMessage` / `errorLabel` fields).
