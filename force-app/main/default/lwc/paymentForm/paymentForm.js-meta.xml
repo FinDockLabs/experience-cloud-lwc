@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>67.0</apiVersion>
-    <description>Pro-code payment form — a drop-in replacement for a payment Flow screen. Supports one-time and recurring payments with configurable currency and frequency toggle.</description>
+    <description>Pro-code payment form — a drop-in replacement for a payment Flow screen. Amount, currency and frequency are set by the admin; the payer enters their details and pays.</description>
     <isExposed>true</isExposed>
     <masterLabel>Payment Form</masterLabel>
     <targets>
@@ -13,13 +13,11 @@
     <targetConfigs>
         <targetConfig targets="lightning__RecordPage,lightning__HomePage,lightningCommunity__Default">
             <property name="currency" type="String" label="Currency"
-                      description="ISO currency code shown next to the amount field (e.g. EUR, USD, GBP)." default="EUR"/>
-            <property name="amount" type="Integer" label="Default Amount"
-                      description="Default amount pre-filled in the amount field. The donor/payer can still change it."/>
-            <property name="showFrequency" type="Boolean" label="Show Frequency Toggle"
-                      description="Show the one-time / recurring frequency selector." default="true"/>
-            <property name="defaultFrequency" type="String" label="Default Frequency"
-                      description="Pre-selected frequency when the form loads." datasource="One time, Monthly" default="One time"/>
+                      description="ISO currency code shown next to the amount (e.g. EUR, USD, GBP)." default="EUR"/>
+            <property name="amount" type="Integer" label="Amount"
+                      description="Amount the payer is charged. Set by the admin; shown read-only to the payer."/>
+            <property name="defaultFrequency" type="String" label="Frequency"
+                      description="Payment frequency. Set by the admin; shown read-only to the payer." datasource="One time, Monthly" default="One time"/>
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

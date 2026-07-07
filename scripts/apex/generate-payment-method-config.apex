@@ -34,6 +34,12 @@ cpm.API_PaymentMethod_V2.getPaymentMethods();
 
 Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
 List<Object> methods = (List<Object>) body.get('PaymentMethods');
+if (methods == null) {
+    throw new IllegalArgumentException(
+        'No payment methods returned by the org. Response body: ' + res.responseBody.toString() +
+        '. Make sure at least one payment method is installed and activated in FinDock for this org.'
+    );
+}
 
 List<ConfigEntry> entries = new List<ConfigEntry>();
 

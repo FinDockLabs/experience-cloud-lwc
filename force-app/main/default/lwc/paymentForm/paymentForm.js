@@ -1,17 +1,20 @@
-import { api, LightningElement, track } from "lwc";
+import { api, wire, LightningElement, track } from "lwc";
+import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService';
+import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
+import { PAYMENT_FLOW_MESSAGE_TYPES, matchesGroup } from 'cpm/paymentFlowChannel';
+import { responseHasFieldLevelError } from 'cpm/paymentMethodValidators';
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
 import LOCALE from '@salesforce/i18n/locale';
 
-// Ensures unique radio `name`/id attributes when multiple payment forms are on the same page.
+// Distinguishes multiple forms on one page (used as the channel correlation key).
 let _nextInstanceId = 0;
 
 // Only cadence supported today. Revisit as an @api property if other cadences are needed.
 const RECURRING_FREQUENCY = 'Monthly';
 
-// Maps the friendly values shown in the App Builder / Experience Builder "Default Frequency"
-// picklist to the internal frequency codes used throughout the component. Falls back to the
-// raw value so the legacy 'oneTime'/'recurring' codes still work if set programmatically.
+// Maps the friendly App/Experience Builder "Default Frequency" values to internal codes.
+// Falls back to the raw value so 'oneTime'/'recurring' still work if set programmatically.
 const FREQUENCY_ALIASES = {
     'one time': 'oneTime',
     'monthly': 'recurring'
@@ -22,8 +25,7 @@ function normalizeFrequency(value) {
     return FREQUENCY_ALIASES[value.toLowerCase()] ?? value;
 }
 
-// Recurring.StartDate is required by the Payment API (yyyy-mm-dd). No date picker on the form
-// today, so recurring payments always start today, in the payer's local time.
+// Recurring.StartDate is required by the Payment API (yyyy-mm-dd); recurring payments start today.
 function todayISODate() {
     const d = new Date();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -32,17 +34,13 @@ function todayISODate() {
 }
 
 export default class PaymentForm extends LightningElement {
-    @api recordId;
     @api currency = 'EUR';
     @api amount;
-    @api showFrequency;
     @api defaultFrequency = 'oneTime';
 
     @track firstName = '';
     @track lastName = '';
     @track email = '';
-    @track amountValue = '';
-    @track frequency = 'oneTime';
     @track selectedPaymentMethod = null;
     @track paymentIntent = {};
     @track paymentError = null;
@@ -51,76 +49,39 @@ export default class PaymentForm extends LightningElement {
     labels = labels;
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
     _instanceId = ++_nextInstanceId;
-    _initialAmountFormatted = false;
+    _subscription = null;
 
-    get shouldShowFrequency() {
-        return this.showFrequency !== false;
+    @wire(MessageContext)
+    messageContext;
+
+    // Per-instance key so two forms on a page don't cross-react on the channel.
+    get paymentGroupId() {
+        return `pf-${this._instanceId}`;
     }
 
-    get _currencyFormatInfo() {
-        try {
-            const parts = new Intl.NumberFormat(LOCALE, {
-                style: 'currency',
-                currency: this.currency,
-                currencyDisplay: 'narrowSymbol'
-            }).formatToParts(1);
-            const currencyIndex = parts.findIndex(part => part.type === 'currency');
-            const integerIndex = parts.findIndex(part => part.type === 'integer');
-            const currencyPart = parts[currencyIndex];
-            return {
-                symbol: currencyPart ? currencyPart.value : this.currency,
-                isBefore: currencyIndex !== -1 && currencyIndex < integerIndex
-            };
-        } catch {
-            return { symbol: this.currency, isBefore: true };
-        }
+    get frequency() {
+        return normalizeFrequency(this.defaultFrequency);
     }
 
-    get currencySymbol() {
-        return this._currencyFormatInfo.symbol;
-    }
-
-    get symbolBefore() {
-        return this._currencyFormatInfo.isBefore;
-    }
-
-    get symbolAfter() {
-        return !this._currencyFormatInfo.isBefore;
-    }
-
-    get _currencyDecimals() {
-        try {
-            return new Intl.NumberFormat(LOCALE, {
-                style: 'currency',
-                currency: this.currency
-            }).resolvedOptions().maximumFractionDigits;
-        } catch {
-            return 2;
-        }
-    }
-
-    get amountInputId() {
-        return `payment-form-amount-${this._instanceId}`;
-    }
-
-    get frequencyGroupName() {
-        return `payment-form-frequency-${this._instanceId}`;
-    }
-
-    get oneTimeFrequencyId() {
-        return `payment-form-frequency-onetime-${this._instanceId}`;
-    }
-
-    get recurringFrequencyId() {
-        return `payment-form-frequency-recurring-${this._instanceId}`;
-    }
-
-    get isOneTimeFrequencySelected() {
-        return this.frequency === 'oneTime';
-    }
-
-    get isRecurringFrequencySelected() {
+    get isRecurring() {
         return this.frequency === 'recurring';
+    }
+
+    get formattedAmount() {
+        if (this.amount == null || this.amount === '') {
+            return '';
+        }
+        try {
+            return new Intl.NumberFormat(LOCALE, { style: 'currency', currency: this.currency }).format(Number(this.amount));
+        } catch {
+            return `${this.amount} ${this.currency}`;
+        }
+    }
+
+    get frequencyLabel() {
+        return this.isRecurring
+            ? this.labels.ec_label_frequency_recurring
+            : this.labels.ec_label_frequency_one_time;
     }
 
     get isPayButtonDisabled() {
@@ -130,30 +91,75 @@ export default class PaymentForm extends LightningElement {
             this.firstName &&
             this.lastName &&
             this.email &&
-            this.amountValue &&
-            Number(this.amountValue) > 0 &&
+            Number(this.amount) > 0 &&
             this.selectedPaymentMethod &&
             allInputsValid
         );
     }
 
+    // Hidden for field-level errors: the field already shows the message.
+    get showPaymentErrorBanner() {
+        if (!this.paymentError) {
+            return false;
+        }
+        return !responseHasFieldLevelError(this.paymentError.errorCode);
+    }
+
+    // Payer-facing heading, categorised server-side.
+    get paymentErrorLabel() {
+        return this.paymentError?.errorLabel;
+    }
+
+    // Provider message under the heading, only for a recognised non-field code.
+    // Field-level errors show inline; a codeless response has only a raw fallback.
+    get paymentErrorDetails() {
+        const code = this.paymentError?.errorCode;
+        if (!code || responseHasFieldLevelError(code)) {
+            return [];
+        }
+        const message = (this.paymentError?.errorMessage ?? '').trim();
+        return message ? [message] : [];
+    }
+
+    get hasPaymentErrorDetails() {
+        return this.paymentErrorDetails.length > 0;
+    }
+
+    // TEMP DEBUG (PaymentHub testing only) — remove before merging back
     get paymentErrorJson() {
         return JSON.stringify(this.paymentError, null, 2);
     }
 
-    renderedCallback() {
-        if (this._initialAmountFormatted) return;
-        this._initialAmountFormatted = true;
-        const input = this.template.querySelector('.slds-input');
-        if (input) {
-            this._formatAmountDisplay(input);
-        }
+    connectedCallback() {
+        this.subscribeToPaymentFlow();
+        this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
+        this._updatePaymentIntentContext();
     }
 
-    connectedCallback() {
-        this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
-        this.amountValue = this.amount != null ? String(this.amount) : '';
-        this.frequency = normalizeFrequency(this.defaultFrequency);
+    subscribeToPaymentFlow() {
+        this._subscription = subscribe(
+            this.messageContext,
+            FINDOCK_PAYMENT_FLOW,
+            (message) => this.handlePaymentFlowMessage(message)
+        );
+    }
+
+    disconnectedCallback() {
+        unsubscribe(this._subscription);
+        this._subscription = null;
+    }
+
+    // PAYMENT_ERROR drives the banner; a new attempt (PAYMENT_PENDING) clears it.
+    handlePaymentFlowMessage(message) {
+        if (!matchesGroup(this.paymentGroupId, message)) {
+            return;
+        }
+        if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR) {
+            this.paymentError = message.body;
+        } else if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_PENDING
+                && message.body?.isPending === true) {
+            this.paymentError = null;
+        }
     }
 
     _validateConfig(config) {
@@ -174,7 +180,7 @@ export default class PaymentForm extends LightningElement {
     }
 
     _updatePaymentIntentContext() {
-        const isRecurring = this.frequency === 'recurring';
+        const amount = this.amount != null ? String(this.amount) : '';
         this.paymentIntent = {
             SuccessURL: 'https://example.com/success',
             FailureURL: 'https://example.com/failure',
@@ -187,16 +193,16 @@ export default class PaymentForm extends LightningElement {
                     }
                 }
             },
-            ...(isRecurring ? {
+            ...(this.isRecurring ? {
                 Recurring: {
-                    Amount: this.amountValue,
+                    Amount: amount,
                     CurrencyISOCode: this.currency,
                     Frequency: RECURRING_FREQUENCY,
                     StartDate: todayISODate()
                 }
             } : {
                 OneTime: {
-                    Amount: this.amountValue,
+                    Amount: amount,
                     CurrencyISOCode: this.currency
                 }
             }),
@@ -213,57 +219,8 @@ export default class PaymentForm extends LightningElement {
         this._updatePaymentIntentContext();
     }
 
-    handleAmountInput(event) {
-        let value = event.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
-        const firstDot = value.indexOf('.');
-        if (firstDot !== -1) {
-            value = value.substring(0, firstDot + 1) + value.substring(firstDot + 1).replace(/\./g, '');
-        }
-        const decimals = this._currencyDecimals;
-        const dotIndex = value.indexOf('.');
-        if (decimals === 0 && dotIndex !== -1) {
-            value = value.substring(0, dotIndex);
-        } else if (decimals > 0 && dotIndex !== -1 && value.length - dotIndex - 1 > decimals) {
-            value = value.substring(0, dotIndex + decimals + 1);
-        }
-        event.target.value = value;
-        this.amountValue = value;
-        this._updatePaymentIntentContext();
-    }
-
-    _formatAmountDisplay(inputEl) {
-        if (this.amountValue === '') return;
-        const numeric = Number(this.amountValue);
-        if (!Number.isFinite(numeric)) return;
-        inputEl.value = new Intl.NumberFormat(LOCALE, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: this._currencyDecimals
-        }).format(numeric);
-    }
-
-    handleAmountBlur(event) {
-        this._formatAmountDisplay(event.target);
-    }
-
-    // Swap back to the raw, unformatted value so grouping separators don't interfere with typing.
-    handleAmountFocus(event) {
-        event.target.value = this.amountValue;
-    }
-
-    handleFrequencyChange(event) {
-        this.frequency = event.target.value;
-        this._updatePaymentIntentContext();
-    }
-
     handlePaymentMethodChanged(event) {
         this.selectedPaymentMethod = event.detail;
         this._updatePaymentIntentContext();
-    }
-
-    handlePaymentResult(event) {
-        const result = event.detail;
-        if (result?.errorMessage || result?.statusCode) {
-            this.paymentError = result;
-        }
     }
 }

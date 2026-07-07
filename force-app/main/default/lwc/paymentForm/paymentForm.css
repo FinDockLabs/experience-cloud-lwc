@@ -20,60 +20,32 @@
     min-width: 0;
 }
 
-.frequency-toggle {
-    display: flex;
-    border: 0;
+.section-header {
+    display: block;
+    width: 100%;
+    padding: 0;
+    margin-block-end: var(--slds-g-spacing-2, 0.5rem);
+    font-size: var(--slds-g-font-scale-2, 1rem);
+    font-weight: var(--slds-g-font-weight-bold, 700);
+    color: var(--dxp-s-color-text-default, var(--dxp-g-color-text-default, var(--slds-g-color-neutral-base-10)));
+}
+
+.payment-summary {
+    margin-block-end: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-6, var(--slds-g-spacing-6, 1rem)));
+    text-align: center;
+}
+
+.payment-summary__amount {
     margin: 0;
-    padding: var(--slds-g-sizing-border-2);
-    min-width: 0;
-    background-color: var(--slds-g-color-neutral-base-95);
-    border-radius: var(--dxp-s-form-element-radius-border, var(--slds-g-radius-border-2));
+    font-size: var(--slds-g-font-scale-6, 2rem);
+    font-weight: var(--slds-g-font-weight-bold, 700);
+    color: var(--dxp-s-color-text-default, var(--dxp-g-color-text-default, var(--slds-g-color-neutral-base-10)));
 }
 
-.toggle-option {
-    flex: 1;
-    height: var(--slds-g-sizing-10);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: var(--slds-g-sizing-border-2) solid transparent;
-    border-radius: var(--dxp-s-form-element-radius-border, var(--slds-g-radius-border-2));
-    background: transparent;
-    font-family: var(--dxp-s-form-element-text-font-family, var(--slds-g-font-family-sans));
-    font-size: var(--dxp-s-form-element-text-font-size, var(--slds-g-font-scale-1));
-    font-weight: var(--dxp-s-form-element-text-font-weight, var(--slds-g-font-weight-medium));
-    color: var(--dxp-s-form-element-text-color, var(--dxp-g-root-contrast-color, var(--slds-g-color-neutral-base-30)));
-    letter-spacing: var(--dxp-s-form-element-text-letter-spacing, normal);
-    cursor: pointer;
-    gap: var(--slds-g-spacing-2);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
-}
-
-.monthly-icon {
-    --slds-c-icon-color-foreground-default: var(--slds-g-color-error-base-50);
-}
-
-/* Subtle hover tint, theme-aware, distinct from the selected state */
-.visually-hidden:not(:checked) + .toggle-option:hover {
-    background-color: color-mix(in srgb, var(--dxp-g-brand, var(--slds-g-color-brand-base-60)) 8%, transparent);
-}
-
-/* Selected state: inset ring via box-shadow, not color alone — no layout shift */
-.visually-hidden:checked + .toggle-option {
-    background-color: var(--dxp-s-form-element-color-background, var(--dxp-g-root-background-color, var(--slds-g-color-neutral-base-100)));
-    color: var(--dxp-s-form-element-text-color, var(--dxp-g-root-contrast-color, var(--slds-g-color-neutral-base-10)));
-    box-shadow: inset 0 0 0 2px var(--dxp-g-brand, var(--slds-g-color-brand-base-60));
-}
-
-/* Visible keyboard focus (WCAG 2.4.7 AA) drawn on the label since the input itself is visually hidden */
-.visually-hidden:focus-visible + .toggle-option {
-    outline: 2px solid var(--dxp-g-brand, var(--slds-g-color-brand-base-60));
-    outline-offset: 2px;
-}
-
-/* Selected + focused: drop the inset ring so only the focus outline shows */
-.visually-hidden:checked:focus-visible + .toggle-option {
-    box-shadow: none;
+.payment-summary__frequency {
+    margin: 0;
+    font-size: var(--slds-g-font-scale-1, 0.875rem);
+    color: var(--dxp-s-color-text-weak, var(--dxp-g-color-text-weak, var(--slds-g-color-neutral-base-30)));
 }
 
 /* Force a stable, full-width box regardless of internal state (e.g. cpm-pay-button
@@ -90,7 +62,45 @@ cpm-pay-button {
     margin-block-start: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-6, var(--slds-g-spacing-6, 1rem)));
 }
 
-/* DEBUG: temporary error panel — remove before go-live */
+.payment-error-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--slds-g-spacing-2);
+    margin-top: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-6, var(--slds-g-spacing-6, 1rem)));
+    padding: var(--slds-g-spacing-3);
+    border-radius: var(--dxp-s-form-element-radius-border, var(--slds-g-radius-border-2));
+    background-color: var(--slds-g-color-error-base-95);
+}
+
+.payment-error-banner__icon {
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.payment-error-banner__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--slds-g-spacing-1);
+}
+
+.payment-error-banner__message {
+    margin: 0;
+    font-weight: var(--slds-g-font-weight-bold, 700);
+    color: var(--dxp-s-color-text-error, var(--dxp-g-color-text-error, var(--slds-g-color-error-1, #c23934)));
+}
+
+.payment-error-banner__details {
+    margin: 0;
+    padding-inline-start: var(--slds-g-spacing-4, 1rem);
+    list-style: disc;
+    color: var(--dxp-s-color-text-error, var(--dxp-g-color-text-error, var(--slds-g-color-error-1, #c23934)));
+}
+
+.payment-error-banner__detail {
+    margin: 0;
+}
+
+/* DEBUG: config error panel — remove before go-live */
 .error-debug-panel {
     margin-top: 1rem;
     border: 2px dashed var(--dxp-s-color-border-error, var(--dxp-g-color-border-error, var(--slds-g-color-border-error-1, #c23934)));

@@ -4,8 +4,6 @@ This repository contains building blocks to help you build custom Lightning Web 
 
 This is the code-first alternative to using our managed LWCs directly in Flows. For other options, see [Templates for FinDock Payment Experiences](https://github.com/FinDockLabs/experience-cloud-templates). 
 
-Use this repo when you need full code control over your form's UX — layout, validation, field composition — while still relying on FinDock's managed `cpm-payment-method-selector` and `cpm-pay-button` components for payment method selection and PaymentIntent submission.
-
 ## Deploy
 
 Note: deploys example LWC wrapper around FinDock's components. Both out of the box components are part of the FinDock managed package and can be used without the code in this repository.
@@ -14,10 +12,10 @@ Note: deploys example LWC wrapper around FinDock's components. Both out of the b
 
 ## Components
 
-| Component | Tag | Exposed | Purpose |
-| --- | --- | --- | --- |
-| `paymentForm` | `c-payment-form` | Yes | Drop-in payment form. Replaces a payment Screen Flow. Configurable via Experience Builder design properties. |
-| `paymentSelector` | `c-payment-selector` | No | Pro-code wrapper around `cpm-payment-method-selector`. Accepts a simplified flat config and enriches it internally. Used by `paymentForm`; can also be embedded directly in custom LWC forms. |
+| Component | Tag | Exposed | Purpose                                                                                                                                                                                                                                                                                   |
+| --- | --- | --- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `paymentForm` | `c-payment-form` | Yes | Drop-in payment form component that includes both `c-payment-selector` and `cpm-pay-button`. Replaces a payment Screen Flow. Configurable via Experience Builder design properties.|
+| `paymentSelector` | `c-payment-selector` | No | Pro-code wrapper around `cpm-payment-method-selector`. Accepts a simplified flat config and enriches it internally. Used by `paymentForm`; can also be embedded directly in custom LWC forms.                                                                                             |
 
 ### `c-payment-form` — Design Properties
 
@@ -110,6 +108,17 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 
 `supportsRecurring` is not a duplicate of `enabledRecurring`: the former is the processor's technical capability, the latter is the admin's choice to offer the method. The managed `cpm-payment-method-selector` filters recurring-tab methods with `supportsRecurring && enabledRecurring`, so it acts as a runtime guard — if `enabledRecurring` is mistakenly set `true` on a method that doesn't actually support recurring, the method still won't appear on the recurring tab. Keep both fields consistent per the constraint above rather than relying on only one.
 
+### Flat parameter fields
+
+| Field | Meaning |
+|---|---|
+| `name` | Parameter key (maps to `PaymentMethod.Parameters[name]`). Source: `Parameters[].Name` from `GET /PaymentMethods` |
+| `value` | Value sent to the processor. Leave empty for payer-filled fields |
+| `visibleToCustomer` | `true` → render as an input for the payer; `false` → send silently (default) |
+| `displayLabel` | Label shown to the payer when `visibleToCustomer` is `true`. Defaults to `name` |
+| `required` | Whether the processor requires this parameter |
+| `data_type` | `String`, `Enum`, `Boolean`, or `Number` |
+| `description` | Human-readable explanation of the parameter |
 ## How it works
 
 `c-payment-form` assembles the PaymentIntent reactively from form state (amount, frequency, personal info, selected payment method) and passes the whole object to `cpm-pay-button` via the `payment-intent` property. The managed Pay Button calls `cpm.API_PaymentIntent_V2.postPaymentIntent()` in-transaction and handles the PSP redirect — no custom Apex controller is needed.
