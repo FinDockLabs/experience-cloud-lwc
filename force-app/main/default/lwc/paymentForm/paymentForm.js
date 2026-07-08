@@ -32,6 +32,17 @@ function todayISODate() {
     return `${d.getFullYear()}-${month}-${day}`;
 }
 
+// Validates strict yyyy-mm-dd format (ISO). Rejects locale formats and invalid calendar dates.
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function isValidISODate(value) {
+    if (typeof value !== 'string' || !ISO_DATE_PATTERN.test(value)) {
+        return false;
+    }
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
 export default class PaymentForm extends LightningElement {
     @api currency = 'EUR';
     @api amount;
@@ -68,7 +79,7 @@ export default class PaymentForm extends LightningElement {
     }
 
     get recurringStartDate() {
-        return this.startDate || todayISODate();
+        return isValidISODate(this.startDate) ? this.startDate : todayISODate();
     }
 
     get formattedAmount() {

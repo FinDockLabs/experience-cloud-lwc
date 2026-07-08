@@ -19,7 +19,7 @@
             <property name="defaultFrequency" type="String" label="Frequency"
                       description="Payment frequency. Set by the admin; shown read-only to the payer." datasource="One time, Monthly" default="One time"/>
             <property name="startDate" type="String" label="Recurring Start Date"
-                      description="Start date (yyyy-mm-dd) for recurring payments. Required by the Payment API; if left blank, today's date is used."/>
+                      description="Start date for recurring payments. Must be in yyyy-mm-dd format (e.g., 2026-01-15). Defaults to today if invalid or left blank."/>
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>
