@@ -6,30 +6,30 @@ This is the code-first alternative to using our managed LWCs directly in Flows. 
 
 ## Deploy
 
-Note: deploys example LWC wrapper around FinDock's components. Both out of the box components are part of the FinDock managed package and can be used without the code in this repository.
+Note: This deploys an example LWC wrapper around FinDock's components. Both out of the box components are part of the FinDock managed package and can be used without the code in this repository.
 
 [![Deploy to Salesforce](https://app.jdeploy.cloud/images/flat.svg)](https://app.jdeploy.cloud/github/FinDockLabs/experience-cloud-lwc/main)
 
 ## Components
 
-| Component | Tag | Exposed | Purpose                                                                                                                                                                                                                                                                                   |
-| --- | --- | --- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `paymentForm` | `c-payment-form` | Yes | Drop-in payment form component that includes both `c-payment-selector` and `cpm-pay-button`. Replaces a payment Screen Flow. Configurable via Experience Builder design properties.|
-| `paymentSelector` | `c-payment-selector` | No | Pro-code wrapper around `cpm-payment-method-selector`. Accepts a simplified flat config and enriches it internally. Used by `paymentForm`; can also be embedded directly in custom LWC forms.                                                                                             |
+| Component | Tag | Exposed | Purpose |
+| --- | --- | --- | --- |
+| `paymentForm` | `c-payment-form` | Yes | Drop-in payment form component that includes both `c-payment-selector` and `cpm-pay-button`. Replaces a payment Screen Flow. Configurable via Experience Builder design properties. |
+| `paymentSelector` | `c-payment-selector` | No | Pro-code wrapper around `cpm-payment-method-selector`. Accepts a simplified flat config and enriches it internally. Used by `paymentForm`; can also be embedded directly in custom LWC forms. |
 
 ### `c-payment-form` — Design Properties
 
-Amount and frequency are set by the admin — the payer does not enter them. The form shows them read-only and the payer only fills in their contact details and picks a payment method (a fixed-checkout model). To let the payer choose the amount, fork the form or embed `c-payment-selector` in a custom LWC with your own amount input.
+Out of the box, the payment form uses fixed amount and frequency values. The form displays them as read-only, and the payer fills in their contact details and picks a payment method (a fixed-checkout model). To let the payer choose the amount, fork the form or embed `c-payment-selector` in a custom LWC with your own input.
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `currency` | String | `EUR` | ISO currency code shown next to the amount (e.g. `EUR`, `USD`, `GBP`). |
-| `amount` | Integer | — | Amount the payer is charged. Set by the admin; shown read-only. |
-| `defaultFrequency` | String | `One time` | Payment frequency, set by the admin and shown read-only. In App Builder / Experience Builder choose `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
+| `amount` | Integer | — | Amount the payer is charged, preset and displayed as read-only. |
+| `defaultFrequency` | String | `One time` | Payment frequency, preset and displayed as read-only. In App Builder / Experience Builder choose `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
 
-Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only cadence supported today. Add a configurable frequency property if another cadence is needed later. A new recurring payment also sends an initial `OneTime` charge (required by PSPs whose `InitialPaymentOnRecurring` is `required`).
+Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only frequency currently supported. Add a configurable frequency property if another frequency is needed. A new recurring payment also sends an initial `OneTime` charge (required by PSPs whose `InitialPaymentOnRecurring` is `required`).
 
-`Recurring.StartDate` is required by the Payment API and is sent as today's date (`yyyy-mm-dd`, payer's local time) — there's no start-date picker on the form today.
+`Recurring.StartDate` is required by the Payment API and is sent as today's date (`yyyy-mm-dd`, payer's local time) — there's currently no start-date picker on the form.
 
 ### `c-payment-selector` — API
 
@@ -42,7 +42,7 @@ Use `c-payment-selector` directly when you want only the payment method selector
 | `paymentIntentResponse` | Object | Optional. Pass the response from `cpm-pay-button` back to the selector for post-payment state. |
 | `onpaymentmethodchanged` | Event | Fired when the payer selects a method. `event.detail` contains the enriched entry (`name`, `processor`, `target`, `parameters`) — ready to use as `PaymentMethod` in a PaymentIntent. Bubbles and is composed. |
 
-Example — embedding the selector standalone in a custom LWC:
+Example — embedding the standalone selector in a custom LWC:
 
 ```html
 <c-payment-selector
@@ -54,7 +54,7 @@ Example — embedding the selector standalone in a custom LWC:
 
 ## Installation
 
-1. Press the **Deploy to Salesforce** button above.
+1. Click the **Deploy to Salesforce** button above.
 2. If the site needs to accept payments from unauthenticated (guest) users, complete the **Experience Cloud & Guest User Setup** steps in [experience-cloud-templates](https://github.com/FinDockLabs/experience-cloud-templates) first — payments will fail at runtime otherwise, even though the page renders correctly.
 3. Run `npm run generate:config -- --org <alias>` to generate `paymentMethodConfiguration.js` from your org's active payment methods, then fill in the `target` field for each entry. See [Payment Method Configuration](#payment-method-configuration) below for details.
 4. Update `SuccessURL` and `FailureURL` in `paymentForm.js` (`_updatePaymentIntentContext`) to point to pages within your Experience Cloud site. These are currently hardcoded (`https://example.com/...`); they will be exposed as `c-payment-form` design properties in a later release so they can be configured in Experience Builder without editing code.
@@ -104,22 +104,23 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 | `redirectInstruction` | Message shown before PSP redirect (e.g. for iDEAL, Bancontact). Omit when there is no redirect. |
 | `parameters` | Array of additional processor parameters (e.g. `locale`, `description`). `null` or omit when none. Each entry: `name`, `value`, `visibleToCustomer`, `displayLabel`, `required`, `data_type`, `description`. |
 
-`supportsRecurring` is not a duplicate of `enabledRecurring`: the former is the processor's technical capability, the latter is the admin's choice to offer the method. The managed `cpm-payment-method-selector` filters recurring-tab methods with `supportsRecurring && enabledRecurring`, so it acts as a runtime guard — if `enabledRecurring` is mistakenly set `true` on a method that doesn't actually support recurring, the method still won't appear on the recurring tab. Keep both fields consistent per the constraint above rather than relying on only one.
+Note that `supportsRecurring` is different from `enabledRecurring`: the former indicates the processor's technical capability, the latter determines if the method is available to the payer. The managed `cpm-payment-method-selector` filters methods on the Recurring tab with `supportsRecurring && enabledRecurring`, so it acts as a runtime guard — if `enabledRecurring` is mistakenly set `true` on a method that doesn't actually support recurring, the method still won't appear on the recurring tab. Keep both fields consistent per the constraint above rather than relying on only one.
 
 ### Flat parameter fields
 
 | Field | Meaning |
-|---|---|
+| --- | --- |
 | `name` | Parameter key (maps to `PaymentMethod.Parameters[name]`). Source: `Parameters[].Name` from `GET /PaymentMethods` |
 | `value` | Value sent to the processor. Leave empty for payer-filled fields |
 | `visibleToCustomer` | `true` → render as an input for the payer; `false` → send silently (default) |
 | `displayLabel` | Label shown to the payer when `visibleToCustomer` is `true`. Defaults to `name` |
-| `required` | Whether the processor requires this parameter |
+| `required` | Indicates if the processor requires this parameter |
 | `data_type` | `String`, `Enum`, `Boolean`, or `Number` |
-| `description` | Human-readable explanation of the parameter |
+| `description` | Explanation of the parameter (for internal use and guidance) |
+
 ## How it works
 
-`c-payment-form` assembles the PaymentIntent reactively from the admin-configured amount and frequency plus form state (personal info, selected payment method) and passes the whole object to `cpm-pay-button` via the `payment-intent` property. The managed Pay Button calls `cpm.API_PaymentIntent_V2.postPaymentIntent()` in-transaction and handles the PSP redirect — no custom Apex controller is needed.
+`c-payment-form` assembles the PaymentIntent reactively from the configured amount and frequency plus form state (personal info, selected payment method) and passes the whole object to `cpm-pay-button` via the `payment-intent` property. The managed Pay Button component calls `cpm.API_PaymentIntent_V2.postPaymentIntent()` in-transaction and handles the PSP redirect — no custom Apex controller is needed.
 
 The Pay Button is disabled until all required fields are filled and a payment method is selected.
 
@@ -147,7 +148,7 @@ See the full **Error and response codes** list in the [Payment API reference](ht
 - **Field-level errors** (bank-detail codes `201`–`206`) are highlighted inline on the matching input by the managed `cpm-payment-method-selector` — no code needed.
 - **Everything else** is shown by `c-payment-form` as a summary banner using `errorLabel`. When the error is field-level, the banner is suppressed so the message only appears on the field.
 
-**Extending / customising**
+**Extending / customizing**
 
 To add your own handling (redirect to a failure page, logging, custom copy, analytics), subscribe to the channel in a custom component and branch on `errorCode` / `statusCode`:
 
