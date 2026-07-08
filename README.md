@@ -26,7 +26,7 @@ Out of the box, the payment form uses fixed amount and frequency values. The for
 | `currency` | String | `EUR` | ISO currency code shown next to the amount (e.g. `EUR`, `USD`, `GBP`). |
 | `amount` | Integer | — | Amount the payer is charged, preset and displayed as read-only. |
 | `defaultFrequency` | String | `One time` | Payment frequency, preset and displayed as read-only. In App Builder / Experience Builder choose `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
-| `startDate` | Date | today | Start date (`yyyy-mm-dd`) for recurring payments, preset in App Builder / Experience Builder. Optional — defaults to today's date (payer's local time) if left blank. |
+| `startDate` | String | today | Start date (`yyyy-mm-dd`) for recurring payments, preset in App Builder / Experience Builder. Optional — defaults to today's date (payer's local time) if left blank. |
 
 Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only frequency currently supported. Add a configurable frequency property if another frequency is needed. A new recurring payment also sends an initial `OneTime` charge (required by PSPs whose `InitialPaymentOnRecurring` is `required`).
 

@@ -18,7 +18,7 @@
                       description="Amount the payer is charged. Set by the admin; shown read-only to the payer."/>
             <property name="defaultFrequency" type="String" label="Frequency"
                       description="Payment frequency. Set by the admin; shown read-only to the payer." datasource="One time, Monthly" default="One time"/>
-            <property name="startDate" type="Date" label="Recurring Start Date"
+            <property name="startDate" type="String" label="Recurring Start Date"
                       description="Start date (yyyy-mm-dd) for recurring payments. Required by the Payment API; if left blank, today's date is used."/>
         </targetConfig>
     </targetConfigs>
