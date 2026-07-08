@@ -18,6 +18,8 @@
                       description="Amount the payer is charged. Set by the admin; shown read-only to the payer."/>
             <property name="defaultFrequency" type="String" label="Frequency"
                       description="Payment frequency. Set by the admin; shown read-only to the payer." datasource="One time, Monthly" default="One time"/>
+            <property name="startDate" type="String" label="Recurring Start Date"
+                      description="Start date for recurring payments. Must be in yyyy-mm-dd format (e.g., 2026-01-15). Defaults to today if invalid or left blank."/>
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

@@ -1,11 +1,12 @@
 import { api, wire, LightningElement, track } from "lwc";
 import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService';
 import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
+import LOCALE from '@salesforce/i18n/locale';
+
 import { PAYMENT_FLOW_MESSAGE_TYPES, matchesGroup } from 'cpm/paymentFlowChannel';
 import { responseHasFieldLevelError } from 'cpm/paymentMethodValidators';
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
-import LOCALE from '@salesforce/i18n/locale';
 
 // Distinguishes multiple forms on one page (used as the channel correlation key).
 let _nextInstanceId = 0;
@@ -25,7 +26,6 @@ function normalizeFrequency(value) {
     return FREQUENCY_ALIASES[value.toLowerCase()] ?? value;
 }
 
-// Recurring.StartDate is required by the Payment API (yyyy-mm-dd); recurring payments start today.
 function todayISODate() {
     const d = new Date();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -33,10 +33,22 @@ function todayISODate() {
     return `${d.getFullYear()}-${month}-${day}`;
 }
 
+// Validates strict yyyy-mm-dd format (ISO). Rejects locale formats and invalid calendar dates.
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function isValidISODate(value) {
+    if (typeof value !== 'string' || !ISO_DATE_PATTERN.test(value)) {
+        return false;
+    }
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
 export default class PaymentForm extends LightningElement {
     @api currency = 'EUR';
     @api amount;
     @api defaultFrequency = 'oneTime';
+    @api startDate;
 
     @track firstName = '';
     @track lastName = '';
@@ -51,9 +63,6 @@ export default class PaymentForm extends LightningElement {
     _instanceId = ++_nextInstanceId;
     _subscription = null;
 
-    @wire(MessageContext)
-    messageContext;
-
     // Per-instance key so two forms on a page don't cross-react on the channel.
     get paymentGroupId() {
         return `pf-${this._instanceId}`;
@@ -65,6 +74,10 @@ export default class PaymentForm extends LightningElement {
 
     get isRecurring() {
         return this.frequency === 'recurring';
+    }
+
+    get recurringStartDate() {
+        return isValidISODate(this.startDate) ? this.startDate : todayISODate();
     }
 
     get formattedAmount() {
@@ -136,30 +149,22 @@ export default class PaymentForm extends LightningElement {
         this._updatePaymentIntentContext();
     }
 
+    disconnectedCallback() {
+        unsubscribe(this._subscription);
+        this._subscription = null;
+    }
+
+    // Apex calls
+    @wire(MessageContext)
+    messageContext;
+
+    // Utility methods
     subscribeToPaymentFlow() {
         this._subscription = subscribe(
             this.messageContext,
             FINDOCK_PAYMENT_FLOW,
             (message) => this.handlePaymentFlowMessage(message)
         );
-    }
-
-    disconnectedCallback() {
-        unsubscribe(this._subscription);
-        this._subscription = null;
-    }
-
-    // PAYMENT_ERROR drives the banner; a new attempt (PAYMENT_PENDING) clears it.
-    handlePaymentFlowMessage(message) {
-        if (!matchesGroup(this.paymentGroupId, message)) {
-            return;
-        }
-        if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR) {
-            this.paymentError = message.body;
-        } else if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_PENDING
-                && message.body?.isPending === true) {
-            this.paymentError = null;
-        }
     }
 
     _validateConfig(config) {
@@ -198,7 +203,7 @@ export default class PaymentForm extends LightningElement {
                     Amount: amount,
                     CurrencyISOCode: this.currency,
                     Frequency: RECURRING_FREQUENCY,
-                    StartDate: todayISODate()
+                    StartDate: this.recurringStartDate
                 }
             } : {
                 OneTime: {
@@ -212,6 +217,19 @@ export default class PaymentForm extends LightningElement {
                 Target: this.selectedPaymentMethod?.target
             }
         };
+    }
+
+    // PAYMENT_ERROR drives the banner; a new attempt (PAYMENT_PENDING) clears it.
+    handlePaymentFlowMessage(message) {
+        if (!matchesGroup(this.paymentGroupId, message)) {
+            return;
+        }
+        if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR) {
+            this.paymentError = message.body;
+        } else if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_PENDING
+                && message.body?.isPending === true) {
+            this.paymentError = null;
+        }
     }
 
     handleFieldChange(event) {

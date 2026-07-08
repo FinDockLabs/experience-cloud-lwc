@@ -26,10 +26,11 @@ Out of the box, the payment form uses fixed amount and frequency values. The for
 | `currency` | String | `EUR` | ISO currency code shown next to the amount (e.g. `EUR`, `USD`, `GBP`). |
 | `amount` | Integer | — | Amount the payer is charged, preset and displayed as read-only. |
 | `defaultFrequency` | String | `One time` | Payment frequency, preset and displayed as read-only. In App Builder / Experience Builder choose `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
+| `startDate` | String | today | Start date for recurring payments, preset in App Builder / Experience Builder. Optional start date in yyyy-mm-dd format (e.g. 2026-01-15). Falls back to today if invalid or omitted.|
 
 Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only frequency currently supported. Add a configurable frequency property if another frequency is needed. A new recurring payment also sends an initial `OneTime` charge (required by PSPs whose `InitialPaymentOnRecurring` is `required`).
 
-`Recurring.StartDate` is required by the Payment API and is sent as today's date (`yyyy-mm-dd`, payer's local time) — there's currently no start-date picker on the form.
+`Recurring.StartDate` is required by the Payment API, which expects `yyyy-mm-dd`. It comes from the `startDate` design property when one is set and correctly formatted; otherwise it defaults to today's date (`yyyy-mm-dd`, payer's local time).
 
 ### `c-payment-selector` — API
 

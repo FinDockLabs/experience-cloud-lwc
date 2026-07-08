@@ -100,6 +100,31 @@ describe('paymentForm', () => {
             expect(intent.OneTime).toBeUndefined();
         });
 
+        it('uses the configured start date when one is set', async () => {
+            const element = createComponent({ amount: 15, defaultFrequency: 'Monthly', startDate: '2026-01-15' });
+            await Promise.resolve();
+            const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+            expect(intent.Recurring.StartDate).toBe('2026-01-15');
+        });
+
+        describe('malformed start date falls back to today', () => {
+            const today = new Date();
+            const expectedToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            it.each([
+                ['US-style mm/dd/yyyy', '01/15/2026'],
+                ['EU-style dd/mm/yyyy', '15/01/2026'],
+                ['non-existent calendar date', '2026-02-30'],
+                ['out-of-range month', '2026-13-01'],
+                ['empty string', ''],
+            ])('ignores %s (%s)', async (_label, startDate) => {
+                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly', startDate });
+                await Promise.resolve();
+                const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+                expect(intent.Recurring.StartDate).toBe(expectedToday);
+            });
+        });
+
         it('passes the configured currency to the intent', async () => {
             const element = createComponent({ amount: 10, currency: 'USD', defaultFrequency: 'One time' });
             await Promise.resolve();
