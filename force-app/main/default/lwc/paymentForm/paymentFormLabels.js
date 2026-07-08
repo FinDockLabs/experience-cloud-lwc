@@ -6,8 +6,8 @@ import ec_label_frequency_recurring from '@salesforce/label/c.ec_label_frequency
 import ec_placeholder_first_name from '@salesforce/label/c.ec_placeholder_first_name';
 import ec_placeholder_last_name from '@salesforce/label/c.ec_placeholder_last_name';
 import ec_placeholder_email from '@salesforce/label/c.ec_placeholder_email';
-import ec_header_personal_details from '@salesforce/label/cpm.ec_header_personal_details';
-import ec_header_select_payment_method from '@salesforce/label/cpm.ec_header_select_payment_method';
+import ec_header_personal_details from '@salesforce/label/c.ec_header_personal_details';
+import ec_header_select_payment_method from '@salesforce/label/c.ec_header_select_payment_method';
 import ec_error_config_invalid from '@salesforce/label/c.ec_error_config_invalid';
 import ec_error_config_empty from '@salesforce/label/c.ec_error_config_empty';
 import ec_error_config_missing_field from '@salesforce/label/c.ec_error_config_missing_field';
