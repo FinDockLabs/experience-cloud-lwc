@@ -1,11 +1,12 @@
 import { api, wire, LightningElement, track } from "lwc";
 import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService';
 import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
+import LOCALE from '@salesforce/i18n/locale';
+
 import { PAYMENT_FLOW_MESSAGE_TYPES, matchesGroup } from 'cpm/paymentFlowChannel';
 import { responseHasFieldLevelError } from 'cpm/paymentMethodValidators';
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
-import LOCALE from '@salesforce/i18n/locale';
 
 // Distinguishes multiple forms on one page (used as the channel correlation key).
 let _nextInstanceId = 0;
@@ -61,9 +62,6 @@ export default class PaymentForm extends LightningElement {
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
     _instanceId = ++_nextInstanceId;
     _subscription = null;
-
-    @wire(MessageContext)
-    messageContext;
 
     // Per-instance key so two forms on a page don't cross-react on the channel.
     get paymentGroupId() {
@@ -151,30 +149,22 @@ export default class PaymentForm extends LightningElement {
         this._updatePaymentIntentContext();
     }
 
+    disconnectedCallback() {
+        unsubscribe(this._subscription);
+        this._subscription = null;
+    }
+
+    // Apex calls
+    @wire(MessageContext)
+    messageContext;
+
+    // Utility methods
     subscribeToPaymentFlow() {
         this._subscription = subscribe(
             this.messageContext,
             FINDOCK_PAYMENT_FLOW,
             (message) => this.handlePaymentFlowMessage(message)
         );
-    }
-
-    disconnectedCallback() {
-        unsubscribe(this._subscription);
-        this._subscription = null;
-    }
-
-    // PAYMENT_ERROR drives the banner; a new attempt (PAYMENT_PENDING) clears it.
-    handlePaymentFlowMessage(message) {
-        if (!matchesGroup(this.paymentGroupId, message)) {
-            return;
-        }
-        if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR) {
-            this.paymentError = message.body;
-        } else if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_PENDING
-                && message.body?.isPending === true) {
-            this.paymentError = null;
-        }
     }
 
     _validateConfig(config) {
@@ -227,6 +217,19 @@ export default class PaymentForm extends LightningElement {
                 Target: this.selectedPaymentMethod?.target
             }
         };
+    }
+
+    // PAYMENT_ERROR drives the banner; a new attempt (PAYMENT_PENDING) clears it.
+    handlePaymentFlowMessage(message) {
+        if (!matchesGroup(this.paymentGroupId, message)) {
+            return;
+        }
+        if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR) {
+            this.paymentError = message.body;
+        } else if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_PENDING
+                && message.body?.isPending === true) {
+            this.paymentError = null;
+        }
     }
 
     handleFieldChange(event) {
