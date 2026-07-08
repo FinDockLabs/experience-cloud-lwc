@@ -25,7 +25,6 @@ function normalizeFrequency(value) {
     return FREQUENCY_ALIASES[value.toLowerCase()] ?? value;
 }
 
-// Recurring.StartDate is required by the Payment API (yyyy-mm-dd); recurring payments start today.
 function todayISODate() {
     const d = new Date();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -37,6 +36,7 @@ export default class PaymentForm extends LightningElement {
     @api currency = 'EUR';
     @api amount;
     @api defaultFrequency = 'oneTime';
+    @api startDate;
 
     @track firstName = '';
     @track lastName = '';
@@ -65,6 +65,10 @@ export default class PaymentForm extends LightningElement {
 
     get isRecurring() {
         return this.frequency === 'recurring';
+    }
+
+    get recurringStartDate() {
+        return this.startDate || todayISODate();
     }
 
     get formattedAmount() {
@@ -198,7 +202,7 @@ export default class PaymentForm extends LightningElement {
                     Amount: amount,
                     CurrencyISOCode: this.currency,
                     Frequency: RECURRING_FREQUENCY,
-                    StartDate: todayISODate()
+                    StartDate: this.recurringStartDate
                 }
             } : {
                 OneTime: {

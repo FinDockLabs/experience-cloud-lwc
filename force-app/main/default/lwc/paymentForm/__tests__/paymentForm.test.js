@@ -100,6 +100,13 @@ describe('paymentForm', () => {
             expect(intent.OneTime).toBeUndefined();
         });
 
+        it('uses the configured start date when one is set', async () => {
+            const element = createComponent({ amount: 15, defaultFrequency: 'Monthly', startDate: '2026-01-15' });
+            await Promise.resolve();
+            const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+            expect(intent.Recurring.StartDate).toBe('2026-01-15');
+        });
+
         it('passes the configured currency to the intent', async () => {
             const element = createComponent({ amount: 10, currency: 'USD', defaultFrequency: 'One time' });
             await Promise.resolve();
