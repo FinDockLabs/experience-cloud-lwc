@@ -57,6 +57,10 @@
  *                       Not a duplicate of enabledRecurring: the managed selector filters
  *                       recurring-tab methods with `supportsRecurring && enabledRecurring`,
  *                       so this guards against enabledRecurring being set true by mistake.
+ *   initialPaymentOnRecurring
+ *                       Whether a recurring payment also takes a first payment up front:
+ *                       "required" (always), "optional" (only when it starts today),
+ *                       "unsupported"/"no" (never). Source: Processors[].InitialPaymentOnRecurring.
  *   displayLabel        Label shown to the payer. Defaults to paymentMethod when omitted.
  *   redirectInstruction Message shown before PSP redirect (e.g. iDEAL, Bancontact).
  *
@@ -81,6 +85,7 @@ export const PAYMENT_METHOD_CONFIG = [
         isDefaultOneTime: true,
         isDefaultRecurring: false,
         supportsRecurring: true,
+        initialPaymentOnRecurring: 'optional',
         displayLabel: 'Credit Card',
         parameters: [
             {
@@ -110,6 +115,7 @@ export const PAYMENT_METHOD_CONFIG = [
         isDefaultOneTime: false,
         isDefaultRecurring: false,
         supportsRecurring: false,
+        initialPaymentOnRecurring: 'unsupported',
         displayLabel: 'iDEAL',
         redirectInstruction: 'You will be redirected to your bank to complete the payment.'
     }

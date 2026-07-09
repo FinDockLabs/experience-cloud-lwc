@@ -101,11 +101,22 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 | `isDefaultOneTime` | Pre-select this method for one-time payments. Exactly one entry should be `true`. |
 | `isDefaultRecurring` | Pre-select this method for recurring payments. Exactly one entry where `enabledRecurring` is `true` should be `true`. |
 | `supportsRecurring` | Whether the processor supports recurring payments for this method. Source: `SupportsRecurring` from `GET /PaymentMethods`. Defaults to `enabledRecurring` when omitted. |
+| `initialPaymentOnRecurring` | Whether a recurring payment may/must also carry an initial (first) payment. One of `'required'`, `'optional'`, `'unsupported'`, `'no'`. Source: `InitialPaymentOnRecurring` from `GET /PaymentMethods`. Defaults to `'unsupported'` when omitted. See below. |
 | `displayLabel` | Label shown to the payer. Defaults to `paymentMethod` when omitted. |
 | `redirectInstruction` | Message shown before PSP redirect (e.g. for iDEAL, Bancontact). Omit when there is no redirect. |
 | `parameters` | Array of additional processor parameters (e.g. `locale`, `description`). `null` or omit when none. Each entry: `name`, `value`, `visibleToCustomer`, `displayLabel`, `required`, `data_type`, `description`. |
 
 Note that `supportsRecurring` is different from `enabledRecurring`: the former indicates the processor's technical capability, the latter determines if the method is available to the payer. The managed `cpm-payment-method-selector` filters methods on the Recurring tab with `supportsRecurring && enabledRecurring`, so it acts as a runtime guard — if `enabledRecurring` is mistakenly set `true` on a method that doesn't actually support recurring, the method still won't appear on the recurring tab. Keep both fields consistent per the constraint above rather than relying on only one.
+
+### Recurring with an initial payment (`initialPaymentOnRecurring`)
+
+When the payer selects a recurring payment, `paymentForm` decides whether to also send an initial `OneTime` block (a first payment charged immediately and shown on the hosted payment page) based on the selected method's `initialPaymentOnRecurring` policy:
+
+- `required` — the method requires an initial payment; `paymentForm` always includes the `OneTime` block (the Payment API rejects a recurring payment without it for these methods).
+- `optional` — the method allows an initial payment; `paymentForm` includes it **only when the recurring schedule starts today** (`startDate` is today or unset). A future `startDate` collects the mandate only (no charge now, no amount shown on the PSP page); the first charge then lands on `startDate`.
+- `unsupported` / `no` — the method does not allow an initial payment; `paymentForm` never sends a `OneTime` block (the Payment API rejects it for these methods).
+
+The value is method- and processor-specific and is sourced from the org, so it must not be hardcoded per processor — regenerate the config with `npm run generate:config` to keep it accurate. For example, on Stripe, `CreditCard` is `optional` while `SEPA Direct Debit` is `unsupported`, so a recurring credit-card payment starting today shows and charges the first payment, whereas a recurring SEPA payment only sets up the mandate.
 
 ### Flat parameter fields
 

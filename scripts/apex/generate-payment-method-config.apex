@@ -53,6 +53,7 @@ for (Object m : methods) {
         Map<String, Object> proc = (Map<String, Object>) p;
         String procName = (String) proc.get('Name');
         Boolean supportsRecurring = proc.get('SupportsRecurring') == true;
+        String initialPaymentOnRecurring = (String) proc.get('InitialPaymentOnRecurring');
 
         List<Object> params = new List<Object>();
         List<Object> rawParams = (List<Object>) proc.get('Parameters');
@@ -80,6 +81,7 @@ for (Object m : methods) {
             'isDefaultOneTime'   => false,
             'isDefaultRecurring' => false,
             'supportsRecurring'  => supportsRecurring,
+            'initialPaymentOnRecurring' => initialPaymentOnRecurring != null ? initialPaymentOnRecurring : 'unsupported',
             'displayLabel'       => methodName,
             'parameters'         => params.isEmpty() ? null : params
         }));

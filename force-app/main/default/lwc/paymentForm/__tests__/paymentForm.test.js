@@ -22,6 +22,21 @@ function setField(element, field, value) {
     );
 }
 
+function selectMethod(element, { name, processor, target = 'My Stripe Test Account' }) {
+    element.shadowRoot.querySelector('c-payment-selector').dispatchEvent(
+        new CustomEvent('paymentmethodchanged', {
+            detail: { name, processor, target },
+            bubbles: true,
+            composed: true
+        })
+    );
+}
+
+function todayISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 afterEach(() => {
     while (document.body.firstChild) {
         document.body.removeChild(document.body.firstChild);
@@ -122,6 +137,46 @@ describe('paymentForm', () => {
                 await Promise.resolve();
                 const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
                 expect(intent.Recurring.StartDate).toBe(expectedToday);
+            });
+        });
+
+        describe('initial payment on recurring', () => {
+            it('adds a OneTime initial payment for an "optional" method starting today', async () => {
+                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
+                selectMethod(element, { name: 'CreditCard', processor: 'PaymentHub-Stripe' });
+                await Promise.resolve();
+                const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+                expect(intent.Recurring.Amount).toBe('15');
+                expect(intent.Recurring.StartDate).toBe(todayISO());
+                // Initial payment charged now, same amount/currency as the recurring schedule.
+                expect(intent.OneTime).toEqual({ Amount: '15', CurrencyISOCode: 'EUR' });
+            });
+
+            it('omits the OneTime block for an "optional" method with a future start date', async () => {
+                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly', startDate: '2099-01-15' });
+                selectMethod(element, { name: 'CreditCard', processor: 'PaymentHub-Stripe' });
+                await Promise.resolve();
+                const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+                expect(intent.Recurring.StartDate).toBe('2099-01-15');
+                expect(intent.OneTime).toBeUndefined();
+            });
+
+            it('never adds a OneTime block for an "unsupported" method, even starting today', async () => {
+                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
+                selectMethod(element, { name: 'SEPA Direct Debit', processor: 'PaymentHub-Stripe' });
+                await Promise.resolve();
+                const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+                expect(intent.Recurring.StartDate).toBe(todayISO());
+                expect(intent.OneTime).toBeUndefined();
+            });
+
+            it('does not add a OneTime block for a one-time payment (initial-payment logic is recurring-only)', async () => {
+                const element = createComponent({ amount: 15, defaultFrequency: 'One time' });
+                selectMethod(element, { name: 'CreditCard', processor: 'PaymentHub-Stripe' });
+                await Promise.resolve();
+                const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+                expect(intent.OneTime).toEqual({ Amount: '15', CurrencyISOCode: 'EUR' });
+                expect(intent.Recurring).toBeUndefined();
             });
         });
 

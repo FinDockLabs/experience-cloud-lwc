@@ -80,6 +80,34 @@ export default class PaymentForm extends LightningElement {
         return isValidISODate(this.startDate) ? this.startDate : todayISODate();
     }
 
+    // Config entry for the selected method, matched by processor + method.
+    get selectedMethodConfig() {
+        const selected = this.selectedPaymentMethod;
+        if (!selected) {
+            return null;
+        }
+        return PAYMENT_METHOD_CONFIG.find(
+            entry => entry.paymentProcessor === selected.processor && entry.paymentMethod === selected.name
+        ) ?? null;
+    }
+
+    // Whether a recurring payment also takes a first payment now, per the method's
+    // initialPaymentOnRecurring policy: 'required' always, 'optional' only for a same-day
+    // start, otherwise never (the API rejects a OneTime block for those methods).
+    get includeInitialPayment() {
+        if (!this.isRecurring) {
+            return false;
+        }
+        const policy = this.selectedMethodConfig?.initialPaymentOnRecurring ?? 'unsupported';
+        if (policy === 'required') {
+            return true;
+        }
+        if (policy === 'optional') {
+            return this.recurringStartDate === todayISODate();
+        }
+        return false;
+    }
+
     get formattedAmount() {
         if (this.amount == null || this.amount === '') {
             return '';
@@ -186,6 +214,27 @@ export default class PaymentForm extends LightningElement {
 
     _updatePaymentIntentContext() {
         const amount = this.amount != null ? String(this.amount) : '';
+        const oneTimeBlock = { Amount: amount, CurrencyISOCode: this.currency };
+
+        let scheduleBlocks;
+        if (this.isRecurring) {
+            scheduleBlocks = {
+                Recurring: {
+                    Amount: amount,
+                    CurrencyISOCode: this.currency,
+                    Frequency: RECURRING_FREQUENCY,
+                    StartDate: this.recurringStartDate
+                }
+            };
+            // First payment now (shown on the hosted page). A future start skips it:
+            // the mandate is set up and the first charge lands on StartDate instead.
+            if (this.includeInitialPayment) {
+                scheduleBlocks.OneTime = oneTimeBlock;
+            }
+        } else {
+            scheduleBlocks = { OneTime: oneTimeBlock };
+        }
+
         this.paymentIntent = {
             SuccessURL: 'https://example.com/success',
             FailureURL: 'https://example.com/failure',
@@ -198,19 +247,7 @@ export default class PaymentForm extends LightningElement {
                     }
                 }
             },
-            ...(this.isRecurring ? {
-                Recurring: {
-                    Amount: amount,
-                    CurrencyISOCode: this.currency,
-                    Frequency: RECURRING_FREQUENCY,
-                    StartDate: this.recurringStartDate
-                }
-            } : {
-                OneTime: {
-                    Amount: amount,
-                    CurrencyISOCode: this.currency
-                }
-            }),
+            ...scheduleBlocks,
             PaymentMethod: {
                 Name: this.selectedPaymentMethod?.name,
                 Processor: this.selectedPaymentMethod?.processor,
