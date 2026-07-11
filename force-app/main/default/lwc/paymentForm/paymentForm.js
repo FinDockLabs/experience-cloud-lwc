@@ -33,22 +33,10 @@ function todayISODate() {
     return `${d.getFullYear()}-${month}-${day}`;
 }
 
-// Validates strict yyyy-mm-dd format (ISO). Rejects locale formats and invalid calendar dates.
-const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-function isValidISODate(value) {
-    if (typeof value !== 'string' || !ISO_DATE_PATTERN.test(value)) {
-        return false;
-    }
-    const parsed = new Date(`${value}T00:00:00Z`);
-    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
-}
-
 export default class PaymentForm extends LightningElement {
     @api currency = 'EUR';
     @api amount;
     @api defaultFrequency = 'oneTime';
-    @api startDate;
 
     @track firstName = '';
     @track lastName = '';
@@ -77,7 +65,7 @@ export default class PaymentForm extends LightningElement {
     }
 
     get recurringStartDate() {
-        return isValidISODate(this.startDate) ? this.startDate : todayISODate();
+        return todayISODate();
     }
 
     // Config entry for the selected method, matched by processor + method.
@@ -91,21 +79,12 @@ export default class PaymentForm extends LightningElement {
         ) ?? null;
     }
 
-    // Whether a recurring payment also takes a first payment now, per the method's
-    // initialPaymentOnRecurring policy: 'required' always, 'optional' only for a same-day
-    // start, otherwise never (the API rejects a OneTime block for those methods).
+    // Add an initial OneTime payment only when the method requires it — the Payment API
+    // rejects a recurring payment without it for those methods. 'optional'/'unsupported'
+    // methods set up the mandate only (no charge on the hosted page, which is expected).
     get includeInitialPayment() {
-        if (!this.isRecurring) {
-            return false;
-        }
-        const policy = this.selectedMethodConfig?.initialPaymentOnRecurring ?? 'unsupported';
-        if (policy === 'required') {
-            return true;
-        }
-        if (policy === 'optional') {
-            return this.recurringStartDate === todayISODate();
-        }
-        return false;
+        return this.isRecurring
+            && this.selectedMethodConfig?.initialPaymentOnRecurring === 'required';
     }
 
     get formattedAmount() {
@@ -226,8 +205,6 @@ export default class PaymentForm extends LightningElement {
                     StartDate: this.recurringStartDate
                 }
             };
-            // First payment now (shown on the hosted page). A future start skips it:
-            // the mandate is set up and the first charge lands on StartDate instead.
             if (this.includeInitialPayment) {
                 scheduleBlocks.OneTime = oneTimeBlock;
             }

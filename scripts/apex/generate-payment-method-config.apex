@@ -54,6 +54,7 @@ for (Object m : methods) {
         String procName = (String) proc.get('Name');
         Boolean supportsRecurring = proc.get('SupportsRecurring') == true;
         String initialPaymentOnRecurring = (String) proc.get('InitialPaymentOnRecurring');
+        if (initialPaymentOnRecurring == null) initialPaymentOnRecurring = 'unsupported';
 
         List<Object> params = new List<Object>();
         List<Object> rawParams = (List<Object>) proc.get('Parameters');
@@ -72,6 +73,8 @@ for (Object m : methods) {
             }
         }
 
+        // initialPaymentOnRecurring drives whether the form must send an initial OneTime
+        // payment (only for 'required' methods, which the API rejects without it).
         entries.add(new ConfigEntry(new Map<String, Object>{
             'paymentMethod'      => methodName,
             'paymentProcessor'   => procName,
@@ -81,7 +84,7 @@ for (Object m : methods) {
             'isDefaultOneTime'   => false,
             'isDefaultRecurring' => false,
             'supportsRecurring'  => supportsRecurring,
-            'initialPaymentOnRecurring' => initialPaymentOnRecurring != null ? initialPaymentOnRecurring : 'unsupported',
+            'initialPaymentOnRecurring' => initialPaymentOnRecurring,
             'displayLabel'       => methodName,
             'parameters'         => params.isEmpty() ? null : params
         }));

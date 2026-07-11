@@ -3,6 +3,7 @@ import PaymentForm from 'c/paymentForm';
 import { publish } from 'lightning/messageService';
 import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
 import { PAYMENT_FLOW_MESSAGE_TYPES } from 'cpm/paymentFlowChannel';
+import { PAYMENT_METHOD_CONFIG } from '../paymentMethodConfiguration';
 import EC_LABEL_FIRST_NAME from '@salesforce/label/c.ec_label_first_name';
 import EC_LABEL_LAST_NAME from '@salesforce/label/c.ec_label_last_name';
 import EC_LABEL_EMAIL_ADDRESS from '@salesforce/label/c.ec_label_email_address';
@@ -32,10 +33,6 @@ function selectMethod(element, { name, processor, target = 'My Stripe Test Accou
     );
 }
 
-function todayISO() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 afterEach(() => {
     while (document.body.firstChild) {
@@ -115,58 +112,41 @@ describe('paymentForm', () => {
             expect(intent.OneTime).toBeUndefined();
         });
 
-        it('uses the configured start date when one is set', async () => {
-            const element = createComponent({ amount: 15, defaultFrequency: 'Monthly', startDate: '2026-01-15' });
-            await Promise.resolve();
-            const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
-            expect(intent.Recurring.StartDate).toBe('2026-01-15');
-        });
-
-        describe('malformed start date falls back to today', () => {
-            const today = new Date();
-            const expectedToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-            it.each([
-                ['US-style mm/dd/yyyy', '01/15/2026'],
-                ['EU-style dd/mm/yyyy', '15/01/2026'],
-                ['non-existent calendar date', '2026-02-30'],
-                ['out-of-range month', '2026-13-01'],
-                ['empty string', ''],
-            ])('ignores %s (%s)', async (_label, startDate) => {
-                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly', startDate });
-                await Promise.resolve();
-                const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
-                expect(intent.Recurring.StartDate).toBe(expectedToday);
-            });
-        });
-
+        // A OneTime block is added for recurring only when the method's initialPaymentOnRecurring
+        // is 'required'
         describe('initial payment on recurring', () => {
-            it('adds a OneTime initial payment for an "optional" method starting today', async () => {
+            it('adds a OneTime initial payment for a "required" method', async () => {
+                // No 'required' method ships in the example config, so add one for this test.
+                PAYMENT_METHOD_CONFIG.push({
+                    paymentProcessor: 'Test-Processor', paymentMethod: 'RequiredCard',
+                    enabledRecurring: true, supportsRecurring: true, initialPaymentOnRecurring: 'required'
+                });
+                try {
+                    const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
+                    selectMethod(element, { name: 'RequiredCard', processor: 'Test-Processor' });
+                    await Promise.resolve();
+                    const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+                    expect(intent.Recurring.Amount).toBe('15');
+                    // Same amount/currency as the recurring schedule.
+                    expect(intent.OneTime).toEqual({ Amount: '15', CurrencyISOCode: 'EUR' });
+                } finally {
+                    PAYMENT_METHOD_CONFIG.pop();
+                }
+            });
+
+            it('omits the OneTime block for an "optional" method (mandate only)', async () => {
                 const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
                 selectMethod(element, { name: 'CreditCard', processor: 'PaymentHub-Stripe' });
                 await Promise.resolve();
                 const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
-                expect(intent.Recurring.Amount).toBe('15');
-                expect(intent.Recurring.StartDate).toBe(todayISO());
-                // Initial payment charged now, same amount/currency as the recurring schedule.
-                expect(intent.OneTime).toEqual({ Amount: '15', CurrencyISOCode: 'EUR' });
-            });
-
-            it('omits the OneTime block for an "optional" method with a future start date', async () => {
-                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly', startDate: '2099-01-15' });
-                selectMethod(element, { name: 'CreditCard', processor: 'PaymentHub-Stripe' });
-                await Promise.resolve();
-                const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
-                expect(intent.Recurring.StartDate).toBe('2099-01-15');
                 expect(intent.OneTime).toBeUndefined();
             });
 
-            it('never adds a OneTime block for an "unsupported" method, even starting today', async () => {
+            it('omits the OneTime block for an "unsupported" method', async () => {
                 const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
                 selectMethod(element, { name: 'SEPA Direct Debit', processor: 'PaymentHub-Stripe' });
                 await Promise.resolve();
                 const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
-                expect(intent.Recurring.StartDate).toBe(todayISO());
                 expect(intent.OneTime).toBeUndefined();
             });
 

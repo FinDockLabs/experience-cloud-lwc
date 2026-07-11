@@ -26,11 +26,10 @@ Out of the box, the payment form uses fixed amount and frequency values. The for
 | `currency` | String | `EUR` | ISO currency code shown next to the amount (e.g. `EUR`, `USD`, `GBP`). |
 | `amount` | Integer | — | Amount the payer is charged, preset and displayed as read-only. |
 | `defaultFrequency` | String | `One time` | Payment frequency, preset and displayed as read-only. In App Builder / Experience Builder choose `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
-| `startDate` | String | today | Start date for recurring payments, preset in App Builder / Experience Builder. Optional start date in yyyy-mm-dd format (e.g. 2026-01-15). Falls back to today if invalid or omitted.|
 
-Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only frequency currently supported. Add a configurable frequency property if another frequency is needed. A new recurring payment also sends an initial `OneTime` charge (required by PSPs whose `InitialPaymentOnRecurring` is `required`).
+Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only frequency currently supported. Add a configurable frequency property if another frequency is needed.
 
-`Recurring.StartDate` is required by the Payment API, which expects `yyyy-mm-dd`. It comes from the `startDate` design property when one is set and correctly formatted; otherwise it defaults to today's date (`yyyy-mm-dd`, payer's local time).
+`Recurring.StartDate` is required by the Payment API (`yyyy-mm-dd`) for every source, so the form always sends it, defaulting to **today** (payer's local time). It is the *earliest* collection date — the API normalises the exact day to the org's payment schedule (e.g. day-of-month), so the day sent here need not be exact.
 
 ### `c-payment-selector` — API
 
@@ -95,28 +94,33 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 | --- | --- |
 | `paymentProcessor` | Name of the FinDock processor package (e.g. `PaymentHub-Stripe`). Maps to `PaymentMethod.Processor`. Source: `PaymentMethods[].Processors[].Name`. |
 | `paymentMethod` | Name of the payment method. Maps to `PaymentMethod.Name` in the PaymentIntent. Source: `PaymentMethods[].Name` from `GET /PaymentMethods`. |
-| `target` | Merchant account name. Maps to `PaymentMethod.Target`. Find it in FinDock Setup → Processors & Methods → Accounts tab. Not returned by the API — must be filled in manually. |
+| `target` | Merchant account (bank / PSP account) name. Maps to `PaymentMethod.Target`. Optional — leave empty (`''`) to use the processor's Default Account; set it only to route to a non-default account. Find the name in FinDock Setup → Processors & Methods → Accounts tab. For PSPs it is not returned by the API, so it must be filled in manually. See the note on required accounts below. |
 | `enabledOneTime` | Show this method for one-time payments. |
 | `enabledRecurring` | Show this method for recurring payments. Must be `false` when `supportsRecurring` is `false`. |
 | `isDefaultOneTime` | Pre-select this method for one-time payments. Exactly one entry should be `true`. |
 | `isDefaultRecurring` | Pre-select this method for recurring payments. Exactly one entry where `enabledRecurring` is `true` should be `true`. |
 | `supportsRecurring` | Whether the processor supports recurring payments for this method. Source: `SupportsRecurring` from `GET /PaymentMethods`. Defaults to `enabledRecurring` when omitted. |
-| `initialPaymentOnRecurring` | Whether a recurring payment may/must also carry an initial (first) payment. One of `'required'`, `'optional'`, `'unsupported'`, `'no'`. Source: `InitialPaymentOnRecurring` from `GET /PaymentMethods`. Defaults to `'unsupported'` when omitted. See below. |
+| `initialPaymentOnRecurring` | The method's policy for carrying an initial (first) payment on a recurring payment. One of `'required'`, `'optional'`, `'unsupported'`, `'no'`. Source: `InitialPaymentOnRecurring` from `GET /PaymentMethods`. Defaults to `'unsupported'` when omitted. The form adds an initial `OneTime` payment only for `'required'` methods. See below. |
 | `displayLabel` | Label shown to the payer. Defaults to `paymentMethod` when omitted. |
 | `redirectInstruction` | Message shown before PSP redirect (e.g. for iDEAL, Bancontact). Omit when there is no redirect. |
 | `parameters` | Array of additional processor parameters (e.g. `locale`, `description`). `null` or omit when none. Each entry: `name`, `value`, `visibleToCustomer`, `displayLabel`, `required`, `data_type`, `description`. |
 
 Note that `supportsRecurring` is different from `enabledRecurring`: the former indicates the processor's technical capability, the latter determines if the method is available to the payer. The managed `cpm-payment-method-selector` filters methods on the Recurring tab with `supportsRecurring && enabledRecurring`, so it acts as a runtime guard — if `enabledRecurring` is mistakenly set `true` on a method that doesn't actually support recurring, the method still won't appear on the recurring tab. Keep both fields consistent per the constraint above rather than relying on only one.
 
-### Recurring with an initial payment (`initialPaymentOnRecurring`)
+### Every processor needs a merchant account
 
-When the payer selects a recurring payment, `paymentForm` decides whether to also send an initial `OneTime` block (a first payment charged immediately and shown on the hosted payment page) based on the selected method's `initialPaymentOnRecurring` policy:
+Each processor you list in the config must have **at least one merchant/bank account (target)** configured in the org — merchant and bank accounts integrate with your PSP or bank, and you need a contract with the bank or PSP to get one. `PaymentMethod.Target` itself is optional: leaving `target` empty tells the Payment API to use the processor's **Default Account**. An empty `target` therefore means *"use the default account"*, not *"no account"* — if the processor has no account at all, there is no default to fall back to and the payment fails at runtime (the API returns a `No default setup record` error, shown in the form's error banner) even though `paymentMethod` and `paymentProcessor` are correct.
 
-- `required` — the method requires an initial payment; `paymentForm` always includes the `OneTime` block (the Payment API rejects a recurring payment without it for these methods).
-- `optional` — the method allows an initial payment; `paymentForm` includes it **only when the recurring schedule starts today** (`startDate` is today or unset). A future `startDate` collects the mandate only (no charge now, no amount shown on the PSP page); the first charge then lands on `startDate`.
-- `unsupported` / `no` — the method does not allow an initial payment; `paymentForm` never sends a `OneTime` block (the Payment API rejects it for these methods).
+### Recurring with an initial payment
 
-The value is method- and processor-specific and is sourced from the org, so it must not be hardcoded per processor — regenerate the config with `npm run generate:config` to keep it accurate. For example, on Stripe, `CreditCard` is `optional` while `SEPA Direct Debit` is `unsupported`, so a recurring credit-card payment starting today shows and charges the first payment, whereas a recurring SEPA payment only sets up the mandate.
+For a recurring payment, `paymentForm` adds an initial `OneTime` block (a first payment charged now, alongside setting up the recurring) **only when the method's `initialPaymentOnRecurring` is `required`** — the Payment API rejects a recurring request without it for those methods.
+
+- `required` — always includes the `OneTime` block (verified: the API returns a 422 *"requires an initial payment"* otherwise).
+- `optional` / `unsupported` / `no` — no `OneTime` block; the recurring payment sets up the mandate only.
+
+For `optional` / `unsupported` methods the hosted checkout shows no amount and takes no payment on the page — that is expected (the mandate is collected and the scheduled installments are charged off-session by FinDock), not a bug.
+
+`initialPaymentOnRecurring` is method- and processor-specific and sourced from the org, so it must not be hardcoded — regenerate the config with `npm run generate:config` to keep it accurate. On Stripe, for example, no method is `required` (`CreditCard` is `optional`, `SEPA Direct Debit` is `unsupported`), so no initial payment is added; `required` applies to some other processors' methods.
 
 ### Flat parameter fields
 
