@@ -79,9 +79,7 @@ export default class PaymentForm extends LightningElement {
         ) ?? null;
     }
 
-    // Add an initial OneTime payment only when the method requires it — the Payment API
-    // rejects a recurring payment without it for those methods. 'optional'/'unsupported'
-    // methods set up the mandate only (no charge on the hosted page, which is expected).
+    // Add an initial OneTime payment only when the method requires it
     get includeInitialPayment() {
         return this.isRecurring
             && this.selectedMethodConfig?.initialPaymentOnRecurring === 'required';

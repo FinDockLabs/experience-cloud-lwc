@@ -109,7 +109,7 @@ Note that `supportsRecurring` is different from `enabledRecurring`: the former i
 
 ### Recurring with an initial payment
 
-Some methods take a first payment up front when a recurring payment is set up. `paymentForm` adds an initial `OneTime` block **only when the method's `initialPaymentOnRecurring` is `required`** (the first payment is then charged immediately); `optional` / `unsupported` methods set up the mandate only. The value is sourced from the org per method, so regenerate the config with `npm run generate:config` rather than hardcoding it.
+Some methods take a first payment up front when a recurring payment is set up. `paymentForm` adds an initial `OneTime` block **only when the method's `initialPaymentOnRecurring` is `required`** (the first payment is then charged immediately); `optional` / `unsupported` methods set up the mandate only.
 
 See [Initial payments for recurring payments](https://docs.findock.com/api/initial-payments-for-recurring-payments) for the full behavior and per-processor support.
 
