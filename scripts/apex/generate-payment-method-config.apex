@@ -73,8 +73,6 @@ for (Object m : methods) {
             }
         }
 
-        // initialPaymentOnRecurring drives whether the form must send an initial OneTime
-        // payment (only for 'required' methods, which the API rejects without it).
         entries.add(new ConfigEntry(new Map<String, Object>{
             'paymentMethod'      => methodName,
             'paymentProcessor'   => procName,
