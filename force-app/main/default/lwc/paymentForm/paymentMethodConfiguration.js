@@ -77,6 +77,8 @@
  *   data_type         "String", "Enum", "Boolean", or "Number".
  *   description       Human-readable explanation of the parameter.
  */
+import {labels} from './paymentFormLabels';
+
 export const PAYMENT_METHOD_CONFIG = [
     {
         paymentProcessor: 'PaymentHub-Stripe',
@@ -101,7 +103,7 @@ export const PAYMENT_METHOD_CONFIG = [
                 name: 'description',
                 value: '',
                 visibleToCustomer: true,
-                displayLabel: "Description of the payment for the payer's bank",
+                displayLabel: labels.ec_label_payment_description,
                 required: false,
                 data_type: 'String',
                 description: "Description of the payment for the payer's bank."
