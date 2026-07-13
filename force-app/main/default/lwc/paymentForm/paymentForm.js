@@ -156,11 +156,6 @@ export default class PaymentForm extends LightningElement {
         return this.paymentErrorDetails.length > 0;
     }
 
-    // TEMP DEBUG (PaymentHub testing only) — remove before merging back
-    get paymentErrorJson() {
-        return JSON.stringify(this.paymentError, null, 2);
-    }
-
     connectedCallback() {
         this.subscribeToPaymentFlow();
         this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
@@ -172,11 +167,9 @@ export default class PaymentForm extends LightningElement {
         this._subscription = null;
     }
 
-    // Apex calls
     @wire(MessageContext)
     messageContext;
 
-    // Utility methods
     subscribeToPaymentFlow() {
         this._subscription = subscribe(
             this.messageContext,
@@ -244,7 +237,7 @@ export default class PaymentForm extends LightningElement {
         };
     }
 
-    // PAYMENT_ERROR drives the banner; a new attempt (PAYMENT_PENDING) clears it.
+    // PAYMENT_ERROR drives the banner; a new attempt (PAYMENT_PENDING) clears it
     handlePaymentFlowMessage(message) {
         if (!matchesGroup(this.paymentGroupId, message)) {
             return;

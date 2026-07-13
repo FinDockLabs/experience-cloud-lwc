@@ -98,12 +98,4 @@
             </div>
         </div>
     </template>
-
-    <!-- TEMP DEBUG (PaymentHub testing only) — remove before merging back -->
-    <template lwc:if={paymentError}>
-        <div class="error-debug-panel" role="alert">
-            <p class="error-debug-title">{labels.ec_debug_error_title}</p>
-            <pre class="error-debug-body">{paymentErrorJson}</pre>
-        </div>
-    </template>
 </template>

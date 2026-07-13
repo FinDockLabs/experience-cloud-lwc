@@ -99,29 +99,3 @@ cpm-pay-button {
 .payment-error-banner__detail {
     margin: 0;
 }
-
-/* DEBUG: config error panel — remove before go-live */
-.error-debug-panel {
-    margin-top: 1rem;
-    border: 2px dashed var(--dxp-s-color-border-error, var(--dxp-g-color-border-error, var(--slds-g-color-border-error-1, #c23934)));
-    border-radius: 4px;
-    padding: 0.75rem;
-}
-
-.error-debug-title {
-    font-weight: bold;
-    color: var(--dxp-s-color-text-error, var(--dxp-g-color-text-error, var(--slds-g-color-error-1, #c23934)));
-    margin: 0 0 0.5rem;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.error-debug-body {
-    margin: 0;
-    font-size: 0.75rem;
-    white-space: pre-wrap;
-    word-break: break-all;
-    color: var(--dxp-s-color-text-default, var(--dxp-g-color-text-default, var(--slds-g-color-neutral-base-10, #333)));
-    background: transparent;
-}
