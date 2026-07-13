@@ -13,6 +13,8 @@ import ec_error_config_empty from '@salesforce/label/c.ec_error_config_empty';
 import ec_error_config_missing_field from '@salesforce/label/c.ec_error_config_missing_field';
 import ec_error_no_methods_for_frequency from '@salesforce/label/c.ec_error_no_methods_for_frequency';
 import ec_error_invalid_name from '@salesforce/label/c.ec_error_invalid_name';
+import ec_label_item_name from '@salesforce/label/c.ec_label_item_name';
+import ec_label_payment_description from '@salesforce/label/c.ec_label_payment_description';
 
 const labels = {
     ec_label_first_name,
@@ -30,6 +32,8 @@ const labels = {
     ec_error_config_missing_field,
     ec_error_no_methods_for_frequency,
     ec_error_invalid_name,
+    ec_label_item_name,
+    ec_label_payment_description,
 };
 
 export { labels };
