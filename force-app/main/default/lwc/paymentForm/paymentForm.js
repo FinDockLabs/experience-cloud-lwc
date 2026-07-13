@@ -4,7 +4,6 @@ import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPayment
 import LOCALE from '@salesforce/i18n/locale';
 
 import { PAYMENT_FLOW_MESSAGE_TYPES, matchesGroup } from 'cpm/paymentFlowChannel';
-import { responseHasFieldLevelError } from 'cpm/paymentMethodValidators';
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
 
@@ -128,34 +127,6 @@ export default class PaymentForm extends LightningElement {
         );
     }
 
-    // Hidden for field-level errors: the field already shows the message.
-    get showPaymentErrorBanner() {
-        if (!this.paymentError) {
-            return false;
-        }
-        return !responseHasFieldLevelError(this.paymentError.errorCode);
-    }
-
-    // Payer-facing heading, categorised server-side.
-    get paymentErrorLabel() {
-        return this.paymentError?.errorLabel;
-    }
-
-    // Provider message under the heading, only for a recognised non-field code.
-    // Field-level errors show inline; a codeless response has only a raw fallback.
-    get paymentErrorDetails() {
-        const code = this.paymentError?.errorCode;
-        if (!code || responseHasFieldLevelError(code)) {
-            return [];
-        }
-        const message = (this.paymentError?.errorMessage ?? '').trim();
-        return message ? [message] : [];
-    }
-
-    get hasPaymentErrorDetails() {
-        return this.paymentErrorDetails.length > 0;
-    }
-
     connectedCallback() {
         this.subscribeToPaymentFlow();
         this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
@@ -237,16 +208,20 @@ export default class PaymentForm extends LightningElement {
         };
     }
 
-    // PAYMENT_ERROR drives the banner; a new attempt (PAYMENT_PENDING) clears it
+    // Extension point. The form subscribes to payment events from the Pay Button (findockPaymentFlow
+    // channel) and forwards them to parents. It stores the latest error in paymentError.
+    // It renders no UI banner itself to avoid duplicate error messages.
     handlePaymentFlowMessage(message) {
         if (!matchesGroup(this.paymentGroupId, message)) {
             return;
         }
         if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR) {
             this.paymentError = message.body;
+            this.dispatchEvent(new CustomEvent('paymenterror', { detail: message.body }));
         } else if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_PENDING
                 && message.body?.isPending === true) {
             this.paymentError = null;
+            this.dispatchEvent(new CustomEvent('paymentpending'));
         }
     }
 

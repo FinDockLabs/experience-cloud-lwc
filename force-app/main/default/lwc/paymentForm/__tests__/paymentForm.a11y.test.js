@@ -1,8 +1,6 @@
 import { createElement } from 'lwc';
 import PaymentForm from 'c/paymentForm';
-import { publish } from 'lightning/messageService';
-import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
-import { PAYMENT_FLOW_MESSAGE_TYPES } from 'cpm/paymentFlowChannel';
+import { PAYMENT_METHOD_CONFIG } from '../paymentMethodConfiguration';
 
 // toBeAccessible() is registered globally by jest.setup.a11y.js via @sa11y/jest setup().
 // It runs axe-core with Salesforce preset rules covering WCAG 2.1 AA + WCAG 2.2 AA
@@ -56,19 +54,21 @@ describe('c-payment-form WCAG 2.2 AA accessibility', () => {
         await expect(element).toBeAccessible();
     });
 
-    // ── 4. Payment error banner — announced via role="alert" ─────────────────────
+    // ── 4. Config error banner — announced via role="alert" ─────────────────────
     // Covers: WCAG 4.1.3 Status Messages
-    // The generic payment error banner must be announced to assistive tech without
+    // The config error banner must be announced to assistive tech without
     // requiring focus to move to it.
-    it('passes axe scan when the payment error banner is shown', async () => {
-        const element = createComponent();
-        publish(undefined, FINDOCK_PAYMENT_FLOW, {
-            type: PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR,
-            body: { statusCode: 422, errorLabel: 'We could not process your payment.', errorMessage: 'IBAN invalid' }
-        });
-        await Promise.resolve();
+    it('passes axe scan when the config error banner is shown', async () => {
+        const original = [...PAYMENT_METHOD_CONFIG];
+        PAYMENT_METHOD_CONFIG.length = 0; // empty config → error banner
+        try {
+            const element = createComponent();
+            await Promise.resolve();
 
-        expect(element.shadowRoot.querySelector('.payment-error-banner[role="alert"]')).not.toBeNull();
-        await expect(element).toBeAccessible();
+            expect(element.shadowRoot.querySelector('.payment-error-banner[role="alert"]')).not.toBeNull();
+            await expect(element).toBeAccessible();
+        } finally {
+            PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, ...original);
+        }
     });
 });

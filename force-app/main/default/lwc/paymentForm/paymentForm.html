@@ -77,25 +77,4 @@
             </template>
         </div>
     </div>
-
-    <template lwc:if={showPaymentErrorBanner}>
-        <div class="payment-error-banner" role="alert">
-            <lightning-icon icon-name="utility:error"
-                            variant="error"
-                            size="x-small"
-                            class="payment-error-banner__icon"
-                            aria-hidden="true">
-            </lightning-icon>
-            <div class="payment-error-banner__content">
-                <p class="payment-error-banner__message">{paymentErrorLabel}</p>
-                <template lwc:if={hasPaymentErrorDetails}>
-                    <ul class="payment-error-banner__details">
-                        <template for:each={paymentErrorDetails} for:item="detail">
-                            <li key={detail} class="payment-error-banner__detail">{detail}</li>
-                        </template>
-                    </ul>
-                </template>
-            </div>
-        </div>
-    </template>
 </template>

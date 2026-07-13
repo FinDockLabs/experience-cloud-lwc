@@ -159,24 +159,25 @@ See the full **Error and response codes** list in the [Payment API reference](ht
 **What the components do out of the box**
 
 - **Field-level errors** (bank-detail codes `201`–`206`) are highlighted inline on the matching input by the managed `cpm-payment-method-selector` — no code needed.
-- **Everything else** is shown by `c-payment-form` as a summary banner using `errorLabel`. When the error is field-level, the banner is suppressed so the message only appears on the field.
+- **Everything else** is shown by `cpm-pay-button` as its own inline message above the button. `c-payment-form` does **not** render a second banner, so the message isn't duplicated.
 
 **Extending / customizing**
 
-To add your own handling (redirect to a failure page, logging, custom copy, analytics), subscribe to the channel in a custom component and branch on `errorCode` / `statusCode`:
+`c-payment-form` subscribes to the `findockPaymentFlow` channel and re-surfaces the Pay Button's errors as an extension point, so you don't have to re-wire the channel:
 
+- it re-dispatches a **`paymenterror`** DOM event (`event.detail` is the error — `statusCode`, `errorCode`, `errorMessage`, `errorLabel`) and a **`paymentpending`** event when a new attempt starts;
+- it keeps the last error in the `paymentError` property.
+
+Wrap the component and listen to the event to add your own handling (redirect to a failure page, logging, a custom banner, analytics):
+
+```html
+<c-payment-form onpaymenterror={handlePaymentError}></c-payment-form>
+```
 ```js
-import { subscribe, MessageContext } from 'lightning/messageService';
-import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
-import { PAYMENT_FLOW_MESSAGE_TYPES } from 'cpm/paymentFlowChannel';
-
-// in connectedCallback: subscribe and dispatch on message.type
-handlePaymentFlowMessage(message) {
-    if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR) {
-        const { statusCode, errorCode, errorLabel } = message.body;
-        // e.g. show errorLabel, or redirect to your failure URL for non-recoverable errors
-    }
+handlePaymentError(event) {
+    const { statusCode, errorCode, errorLabel } = event.detail;
+    // e.g. show errorLabel, or redirect to your failure URL for non-recoverable errors
 }
 ```
 
-Or, for post-payment handling on the button itself, read the `PaymentIntentResponseContext` returned by `cpm-pay-button` (same `statusCode` / `errorCode` / `errorMessage` / `errorLabel` fields).
+If you fork the component, bind to `paymentError` in the template to render your own banner. You can also read the `PaymentIntentResponseContext` returned by `cpm-pay-button` directly (same `statusCode` / `errorCode` / `errorMessage` / `errorLabel` fields).

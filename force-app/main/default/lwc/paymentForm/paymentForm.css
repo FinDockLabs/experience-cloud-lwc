@@ -77,25 +77,8 @@ cpm-pay-button {
     margin-top: 0.125rem;
 }
 
-.payment-error-banner__content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--slds-g-spacing-1);
-}
-
 .payment-error-banner__message {
     margin: 0;
     font-weight: var(--slds-g-font-weight-bold, 700);
     color: var(--dxp-s-color-text-error, var(--dxp-g-color-text-error, var(--slds-g-color-error-1, #c23934)));
-}
-
-.payment-error-banner__details {
-    margin: 0;
-    padding-inline-start: var(--slds-g-spacing-4, 1rem);
-    list-style: disc;
-    color: var(--dxp-s-color-text-error, var(--dxp-g-color-text-error, var(--slds-g-color-error-1, #c23934)));
-}
-
-.payment-error-banner__detail {
-    margin: 0;
 }
