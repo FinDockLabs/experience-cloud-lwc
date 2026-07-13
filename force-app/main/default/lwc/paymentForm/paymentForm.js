@@ -85,6 +85,19 @@ export default class PaymentForm extends LightningElement {
             && this.selectedMethodConfig?.initialPaymentOnRecurring === 'required';
     }
 
+    get availableMethods() {
+        if (!Array.isArray(PAYMENT_METHOD_CONFIG)) {
+            return [];
+        }
+        return PAYMENT_METHOD_CONFIG.filter(m =>
+            this.isRecurring ? (m.supportsRecurring && m.enabledRecurring) : m.enabledOneTime
+        );
+    }
+
+    get hasNoMethodsForFrequency() {
+        return !this.configError && this.availableMethods.length === 0;
+    }
+
     get formattedAmount() {
         if (this.amount == null || this.amount === '') {
             return '';

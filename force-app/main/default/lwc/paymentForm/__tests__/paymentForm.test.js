@@ -58,6 +58,39 @@ describe('paymentForm', () => {
         });
     });
 
+    describe('config / availability guards', () => {
+        // Both cases mutate the imported config array; snapshot and restore it around each test.
+        let original;
+        beforeEach(() => {
+            original = [...PAYMENT_METHOD_CONFIG];
+        });
+        afterEach(() => {
+            PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, ...original);
+        });
+
+        it('shows an error banner and hides the payment UI when the config is empty', () => {
+            PAYMENT_METHOD_CONFIG.length = 0;
+            const element = createComponent({ amount: 25 });
+            expect(element.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
+            expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
+            expect(element.shadowRoot.querySelector('cpm-pay-button')).toBeNull();
+        });
+
+        it('shows a friendly banner (not the selector) when no method matches the frequency', () => {
+            // Only a one-time method remains, but the admin picked recurring.
+            PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, {
+                paymentProcessor: 'PaymentHub-Stripe', paymentMethod: 'Ideal',
+                enabledOneTime: true, enabledRecurring: false, supportsRecurring: false
+            });
+            const element = createComponent({ amount: 25, defaultFrequency: 'Monthly' });
+            const banner = element.shadowRoot.querySelector('.payment-error-banner');
+            expect(banner).not.toBeNull();
+            expect(banner.textContent).toContain('No payment methods are available');
+            expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
+            expect(element.shadowRoot.querySelector('cpm-pay-button')).toBeNull();
+        });
+    });
+
     describe('admin-configured amount and frequency (read-only)', () => {
         it('shows the admin amount, currency-formatted', () => {
             const element = createComponent({ amount: 1000, currency: 'USD' });

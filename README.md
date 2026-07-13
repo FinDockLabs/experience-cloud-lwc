@@ -113,6 +113,12 @@ Some methods take a first payment up front when a recurring payment is set up. `
 
 See [Initial payments for recurring payments](https://docs.findock.com/api/initial-payments-for-recurring-payments) for the full behavior and per-processor support.
 
+### Validation and empty states
+
+- **Invalid config** — if `PAYMENT_METHOD_CONFIG` is not an array, is empty, or an entry is missing `paymentMethod` / `paymentProcessor`, the form shows an error banner and hides the payment UI (no selector, no Pay Button) so a broken config can't be submitted.
+- **No method for the selected frequency** — if the config is valid but no method is enabled for the admin-selected frequency (e.g. `defaultFrequency` is `Monthly` but every method is one-time only), the form shows a "no payment methods available" banner in place of the selector.
+- **Runtime failures** — a well-formed config that references a method/processor/target not active in the org isn't caught up front; the PaymentIntent fails at runtime and the message is shown in the payment error banner. Regenerate the config (`npm run generate:config`) when the org's methods change.
+
 ### Flat parameter fields
 
 | Field | Meaning |
