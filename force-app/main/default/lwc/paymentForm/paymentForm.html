@@ -2,90 +2,79 @@
     <div class="slds-card">
         <div class="slds-card__body slds-card__body_inner">
 
-            <!-- DEBUG: config error panel — remove before go-live -->
             <template lwc:if={configError}>
-                <div class="error-debug-panel" role="alert">
-                    <p class="error-debug-title">{labels.ec_debug_config_error_title}</p>
-                    <p class="error-debug-body">{configError}</p>
+                <div class="payment-error-banner" role="alert">
+                    <lightning-icon icon-name="utility:error"
+                                    variant="error"
+                                    size="x-small"
+                                    class="payment-error-banner__icon"
+                                    aria-hidden="true">
+                    </lightning-icon>
+                    <p class="payment-error-banner__message">{configError}</p>
                 </div>
             </template>
+            <template lwc:else>
+                <div class="payment-summary">
+                    <p class="payment-summary__amount">{formattedAmount}</p>
+                    <p class="payment-summary__frequency">{frequencyLabel}</p>
+                </div>
 
-            <div class="payment-summary">
-                <p class="payment-summary__amount">{formattedAmount}</p>
-                <p class="payment-summary__frequency">{frequencyLabel}</p>
-            </div>
+                <fieldset class="form-section slds-form slds-form_stacked">
+                    <legend class="section-header">{labels.ec_header_personal_details}</legend>
+                    <lightning-input type="text"
+                                     label={labels.ec_label_first_name}
+                                     placeholder={labels.ec_placeholder_first_name}
+                                     value={firstName}
+                                     data-field="firstName"
+                                     required
+                                     pattern=".*\S.*"
+                                     message-when-pattern-mismatch={labels.ec_error_invalid_name}
+                                     onchange={handleFieldChange}>
+                    </lightning-input>
+                    <lightning-input type="text"
+                                     label={labels.ec_label_last_name}
+                                     placeholder={labels.ec_placeholder_last_name}
+                                     value={lastName}
+                                     data-field="lastName"
+                                     required
+                                     pattern=".*\S.*"
+                                     message-when-pattern-mismatch={labels.ec_error_invalid_name}
+                                     onchange={handleFieldChange}>
+                    </lightning-input>
+                    <lightning-input type="email"
+                                     label={labels.ec_label_email_address}
+                                     placeholder={labels.ec_placeholder_email}
+                                     value={email}
+                                     data-field="email"
+                                     required
+                                     onchange={handleFieldChange}>
+                    </lightning-input>
+                </fieldset>
 
-            <fieldset class="form-section slds-form slds-form_stacked">
-                <legend class="section-header">{labels.ec_header_personal_details}</legend>
-                <lightning-input type="text"
-                                 label={labels.ec_label_first_name}
-                                 placeholder={labels.ec_placeholder_first_name}
-                                 value={firstName}
-                                 data-field="firstName"
-                                 required
-                                 pattern=".*\S.*"
-                                 message-when-pattern-mismatch={labels.ec_error_invalid_name}
-                                 onchange={handleFieldChange}>
-                </lightning-input>
-                <lightning-input type="text"
-                                 label={labels.ec_label_last_name}
-                                 placeholder={labels.ec_placeholder_last_name}
-                                 value={lastName}
-                                 data-field="lastName"
-                                 required
-                                 pattern=".*\S.*"
-                                 message-when-pattern-mismatch={labels.ec_error_invalid_name}
-                                 onchange={handleFieldChange}>
-                </lightning-input>
-                <lightning-input type="email"
-                                 label={labels.ec_label_email_address}
-                                 placeholder={labels.ec_placeholder_email}
-                                 value={email}
-                                 data-field="email"
-                                 required
-                                 onchange={handleFieldChange}>
-                </lightning-input>
-            </fieldset>
-
-            <fieldset class="form-section slds-form slds-form_stacked">
-                <legend class="section-header">{labels.ec_header_select_payment_method}</legend>
-                <c-payment-selector
-                    config={paymentMethodConfig}
-                    frequency={frequency}
-                    payment-group-id={paymentGroupId}
-                    onpaymentmethodchanged={handlePaymentMethodChanged}>
-                </c-payment-selector>
-            </fieldset>
-            <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} payment-group-id={paymentGroupId}></cpm-pay-button>
+                <template lwc:if={hasNoMethodsForFrequency}>
+                    <div class="payment-error-banner" role="alert">
+                        <lightning-icon icon-name="utility:error"
+                                        variant="error"
+                                        size="x-small"
+                                        class="payment-error-banner__icon"
+                                        aria-hidden="true">
+                        </lightning-icon>
+                        <p class="payment-error-banner__message">{labels.ec_error_no_methods_for_frequency}</p>
+                    </div>
+                </template>
+                <template lwc:else>
+                    <fieldset class="form-section slds-form slds-form_stacked">
+                        <legend class="section-header">{labels.ec_header_select_payment_method}</legend>
+                        <c-payment-selector
+                            config={paymentMethodConfig}
+                            frequency={frequency}
+                            payment-group-id={paymentGroupId}
+                            onpaymentmethodchanged={handlePaymentMethodChanged}>
+                        </c-payment-selector>
+                    </fieldset>
+                    <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} payment-group-id={paymentGroupId}></cpm-pay-button>
+                </template>
+            </template>
         </div>
     </div>
-
-    <template lwc:if={showPaymentErrorBanner}>
-        <div class="payment-error-banner" role="alert">
-            <lightning-icon icon-name="utility:error"
-                            variant="error"
-                            size="x-small"
-                            class="payment-error-banner__icon"
-                            aria-hidden="true">
-            </lightning-icon>
-            <div class="payment-error-banner__content">
-                <p class="payment-error-banner__message">{paymentErrorLabel}</p>
-                <template lwc:if={hasPaymentErrorDetails}>
-                    <ul class="payment-error-banner__details">
-                        <template for:each={paymentErrorDetails} for:item="detail">
-                            <li key={detail} class="payment-error-banner__detail">{detail}</li>
-                        </template>
-                    </ul>
-                </template>
-            </div>
-        </div>
-    </template>
-
-    <!-- TEMP DEBUG (PaymentHub testing only) — remove before merging back -->
-    <template lwc:if={paymentError}>
-        <div class="error-debug-panel" role="alert">
-            <p class="error-debug-title">{labels.ec_debug_error_title}</p>
-            <pre class="error-debug-body">{paymentErrorJson}</pre>
-        </div>
-    </template>
 </template>

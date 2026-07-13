@@ -11,9 +11,8 @@ import ec_header_select_payment_method from '@salesforce/label/c.ec_header_selec
 import ec_error_config_invalid from '@salesforce/label/c.ec_error_config_invalid';
 import ec_error_config_empty from '@salesforce/label/c.ec_error_config_empty';
 import ec_error_config_missing_field from '@salesforce/label/c.ec_error_config_missing_field';
+import ec_error_no_methods_for_frequency from '@salesforce/label/c.ec_error_no_methods_for_frequency';
 import ec_error_invalid_name from '@salesforce/label/c.ec_error_invalid_name';
-import ec_debug_config_error_title from '@salesforce/label/c.ec_debug_config_error_title';
-import ec_debug_error_title from '@salesforce/label/c.ec_debug_error_title';
 
 const labels = {
     ec_label_first_name,
@@ -29,9 +28,8 @@ const labels = {
     ec_error_config_invalid,
     ec_error_config_empty,
     ec_error_config_missing_field,
-    ec_debug_config_error_title,
+    ec_error_no_methods_for_frequency,
     ec_error_invalid_name,
-    ec_debug_error_title,
 };
 
 export { labels };

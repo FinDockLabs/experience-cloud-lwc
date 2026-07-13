@@ -4,7 +4,6 @@ import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPayment
 import LOCALE from '@salesforce/i18n/locale';
 
 import { PAYMENT_FLOW_MESSAGE_TYPES, matchesGroup } from 'cpm/paymentFlowChannel';
-import { responseHasFieldLevelError } from 'cpm/paymentMethodValidators';
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
 
@@ -33,22 +32,10 @@ function todayISODate() {
     return `${d.getFullYear()}-${month}-${day}`;
 }
 
-// Validates strict yyyy-mm-dd format (ISO). Rejects locale formats and invalid calendar dates.
-const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-function isValidISODate(value) {
-    if (typeof value !== 'string' || !ISO_DATE_PATTERN.test(value)) {
-        return false;
-    }
-    const parsed = new Date(`${value}T00:00:00Z`);
-    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
-}
-
 export default class PaymentForm extends LightningElement {
     @api currency = 'EUR';
     @api amount;
     @api defaultFrequency = 'oneTime';
-    @api startDate;
 
     @track firstName = '';
     @track lastName = '';
@@ -77,7 +64,37 @@ export default class PaymentForm extends LightningElement {
     }
 
     get recurringStartDate() {
-        return isValidISODate(this.startDate) ? this.startDate : todayISODate();
+        return todayISODate();
+    }
+
+    // Config entry for the selected method, matched by processor + method.
+    get selectedMethodConfig() {
+        const selected = this.selectedPaymentMethod;
+        if (!selected) {
+            return null;
+        }
+        return PAYMENT_METHOD_CONFIG.find(
+            entry => entry.paymentProcessor === selected.processor && entry.paymentMethod === selected.name
+        ) ?? null;
+    }
+
+    // Add an initial OneTime payment only when the method requires it
+    get includeInitialPayment() {
+        return this.isRecurring
+            && this.selectedMethodConfig?.initialPaymentOnRecurring === 'required';
+    }
+
+    get availableMethods() {
+        if (!Array.isArray(PAYMENT_METHOD_CONFIG)) {
+            return [];
+        }
+        return PAYMENT_METHOD_CONFIG.filter(m =>
+            this.isRecurring ? (m.supportsRecurring && m.enabledRecurring) : m.enabledOneTime
+        );
+    }
+
+    get hasNoMethodsForFrequency() {
+        return !this.configError && this.availableMethods.length === 0;
     }
 
     get formattedAmount() {
@@ -110,39 +127,6 @@ export default class PaymentForm extends LightningElement {
         );
     }
 
-    // Hidden for field-level errors: the field already shows the message.
-    get showPaymentErrorBanner() {
-        if (!this.paymentError) {
-            return false;
-        }
-        return !responseHasFieldLevelError(this.paymentError.errorCode);
-    }
-
-    // Payer-facing heading, categorised server-side.
-    get paymentErrorLabel() {
-        return this.paymentError?.errorLabel;
-    }
-
-    // Provider message under the heading, only for a recognised non-field code.
-    // Field-level errors show inline; a codeless response has only a raw fallback.
-    get paymentErrorDetails() {
-        const code = this.paymentError?.errorCode;
-        if (!code || responseHasFieldLevelError(code)) {
-            return [];
-        }
-        const message = (this.paymentError?.errorMessage ?? '').trim();
-        return message ? [message] : [];
-    }
-
-    get hasPaymentErrorDetails() {
-        return this.paymentErrorDetails.length > 0;
-    }
-
-    // TEMP DEBUG (PaymentHub testing only) — remove before merging back
-    get paymentErrorJson() {
-        return JSON.stringify(this.paymentError, null, 2);
-    }
-
     connectedCallback() {
         this.subscribeToPaymentFlow();
         this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
@@ -154,11 +138,9 @@ export default class PaymentForm extends LightningElement {
         this._subscription = null;
     }
 
-    // Apex calls
     @wire(MessageContext)
     messageContext;
 
-    // Utility methods
     subscribeToPaymentFlow() {
         this._subscription = subscribe(
             this.messageContext,
@@ -186,6 +168,25 @@ export default class PaymentForm extends LightningElement {
 
     _updatePaymentIntentContext() {
         const amount = this.amount != null ? String(this.amount) : '';
+        const oneTimeBlock = { Amount: amount, CurrencyISOCode: this.currency };
+
+        let scheduleBlocks;
+        if (this.isRecurring) {
+            scheduleBlocks = {
+                Recurring: {
+                    Amount: amount,
+                    CurrencyISOCode: this.currency,
+                    Frequency: RECURRING_FREQUENCY,
+                    StartDate: this.recurringStartDate
+                }
+            };
+            if (this.includeInitialPayment) {
+                scheduleBlocks.OneTime = oneTimeBlock;
+            }
+        } else {
+            scheduleBlocks = { OneTime: oneTimeBlock };
+        }
+
         this.paymentIntent = {
             SuccessURL: 'https://example.com/success',
             FailureURL: 'https://example.com/failure',
@@ -198,19 +199,7 @@ export default class PaymentForm extends LightningElement {
                     }
                 }
             },
-            ...(this.isRecurring ? {
-                Recurring: {
-                    Amount: amount,
-                    CurrencyISOCode: this.currency,
-                    Frequency: RECURRING_FREQUENCY,
-                    StartDate: this.recurringStartDate
-                }
-            } : {
-                OneTime: {
-                    Amount: amount,
-                    CurrencyISOCode: this.currency
-                }
-            }),
+            ...scheduleBlocks,
             PaymentMethod: {
                 Name: this.selectedPaymentMethod?.name,
                 Processor: this.selectedPaymentMethod?.processor,
@@ -219,16 +208,20 @@ export default class PaymentForm extends LightningElement {
         };
     }
 
-    // PAYMENT_ERROR drives the banner; a new attempt (PAYMENT_PENDING) clears it.
+    // Extension point. The form subscribes to payment events from the Pay Button (findockPaymentFlow
+    // channel) and forwards them to parents. It stores the latest error in paymentError.
+    // It renders no UI banner itself to avoid duplicate error messages.
     handlePaymentFlowMessage(message) {
         if (!matchesGroup(this.paymentGroupId, message)) {
             return;
         }
         if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR) {
             this.paymentError = message.body;
+            this.dispatchEvent(new CustomEvent('paymenterror', { detail: message.body }));
         } else if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_PENDING
                 && message.body?.isPending === true) {
             this.paymentError = null;
+            this.dispatchEvent(new CustomEvent('paymentpending'));
         }
     }
 

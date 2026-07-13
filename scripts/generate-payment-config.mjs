@@ -88,6 +88,7 @@ function formatEntry(entry) {
         `        isDefaultOneTime: ${entry.isDefaultOneTime},`,
         `        isDefaultRecurring: ${entry.isDefaultRecurring},`,
         `        supportsRecurring: ${entry.supportsRecurring},`,
+        `        initialPaymentOnRecurring: '${entry.initialPaymentOnRecurring ?? 'unsupported'}',`,
     ];
 
     const params = entry.parameters;

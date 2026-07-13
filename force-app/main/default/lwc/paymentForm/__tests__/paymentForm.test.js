@@ -3,11 +3,10 @@ import PaymentForm from 'c/paymentForm';
 import { publish } from 'lightning/messageService';
 import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
 import { PAYMENT_FLOW_MESSAGE_TYPES } from 'cpm/paymentFlowChannel';
+import { PAYMENT_METHOD_CONFIG } from '../paymentMethodConfiguration';
 import EC_LABEL_FIRST_NAME from '@salesforce/label/c.ec_label_first_name';
 import EC_LABEL_LAST_NAME from '@salesforce/label/c.ec_label_last_name';
 import EC_LABEL_EMAIL_ADDRESS from '@salesforce/label/c.ec_label_email_address';
-const ERROR_LABEL_GENERIC = 'We could not process your payment.';
-const ERROR_LABEL_CONFIG = 'This payment method is not available right now.';
 
 function createComponent(props = {}) {
     const element = createElement('c-payment-form', { is: PaymentForm });
@@ -21,6 +20,17 @@ function setField(element, field, value) {
         new CustomEvent('change', { detail: { value } })
     );
 }
+
+function selectMethod(element, { name, processor, target = 'My Stripe Test Account' }) {
+    element.shadowRoot.querySelector('c-payment-selector').dispatchEvent(
+        new CustomEvent('paymentmethodchanged', {
+            detail: { name, processor, target },
+            bubbles: true,
+            composed: true
+        })
+    );
+}
+
 
 afterEach(() => {
     while (document.body.firstChild) {
@@ -43,6 +53,39 @@ describe('paymentForm', () => {
             const element = createComponent({ amount: 25 });
             expect(element.shadowRoot.querySelector('.slds-input')).toBeNull();
             expect(element.shadowRoot.querySelector('.frequency-toggle')).toBeNull();
+        });
+    });
+
+    describe('config / availability guards', () => {
+        // Both cases mutate the imported config array; snapshot and restore it around each test.
+        let original;
+        beforeEach(() => {
+            original = [...PAYMENT_METHOD_CONFIG];
+        });
+        afterEach(() => {
+            PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, ...original);
+        });
+
+        it('shows an error banner and hides the payment UI when the config is empty', () => {
+            PAYMENT_METHOD_CONFIG.length = 0;
+            const element = createComponent({ amount: 25 });
+            expect(element.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
+            expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
+            expect(element.shadowRoot.querySelector('cpm-pay-button')).toBeNull();
+        });
+
+        it('shows a friendly banner (not the selector) when no method matches the frequency', () => {
+            // Only a one-time method remains, but the admin picked recurring.
+            PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, {
+                paymentProcessor: 'PaymentHub-Stripe', paymentMethod: 'Ideal',
+                enabledOneTime: true, enabledRecurring: false, supportsRecurring: false
+            });
+            const element = createComponent({ amount: 25, defaultFrequency: 'Monthly' });
+            const banner = element.shadowRoot.querySelector('.payment-error-banner');
+            expect(banner).not.toBeNull();
+            expect(banner.textContent).toContain('No payment methods are available');
+            expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
+            expect(element.shadowRoot.querySelector('cpm-pay-button')).toBeNull();
         });
     });
 
@@ -89,39 +132,76 @@ describe('paymentForm', () => {
         });
 
         it('uses the Recurring block (Monthly, starting today) when the admin frequency is recurring', async () => {
-            const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
-            await Promise.resolve();
-            const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
-            const today = new Date();
-            const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            expect(intent.Recurring.Amount).toBe('15');
-            expect(intent.Recurring.Frequency).toBe('Monthly');
-            expect(intent.Recurring.StartDate).toBe(expected);
-            expect(intent.OneTime).toBeUndefined();
-        });
-
-        it('uses the configured start date when one is set', async () => {
-            const element = createComponent({ amount: 15, defaultFrequency: 'Monthly', startDate: '2026-01-15' });
-            await Promise.resolve();
-            const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
-            expect(intent.Recurring.StartDate).toBe('2026-01-15');
-        });
-
-        describe('malformed start date falls back to today', () => {
-            const today = new Date();
-            const expectedToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-            it.each([
-                ['US-style mm/dd/yyyy', '01/15/2026'],
-                ['EU-style dd/mm/yyyy', '15/01/2026'],
-                ['non-existent calendar date', '2026-02-30'],
-                ['out-of-range month', '2026-13-01'],
-                ['empty string', ''],
-            ])('ignores %s (%s)', async (_label, startDate) => {
-                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly', startDate });
+            // Add a recurring-enabled method so the selector/pay button render on the recurring tab.
+            PAYMENT_METHOD_CONFIG.push({
+                paymentProcessor: 'Test-Processor', paymentMethod: 'RecurringCard',
+                enabledRecurring: true, supportsRecurring: true, initialPaymentOnRecurring: 'unsupported'
+            });
+            try {
+                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
                 await Promise.resolve();
                 const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
-                expect(intent.Recurring.StartDate).toBe(expectedToday);
+                const today = new Date();
+                const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                expect(intent.Recurring.Amount).toBe('15');
+                expect(intent.Recurring.Frequency).toBe('Monthly');
+                expect(intent.Recurring.StartDate).toBe(expected);
+                expect(intent.OneTime).toBeUndefined();
+            } finally {
+                PAYMENT_METHOD_CONFIG.pop();
+            }
+        });
+
+        // A OneTime block is added for recurring only when the method's initialPaymentOnRecurring
+        // is 'required'. These policy methods aren't in the shipped example config, so add them
+        // (enabled for both frequencies) around each test.
+        describe('initial payment on recurring', () => {
+            let original;
+            beforeEach(() => {
+                original = [...PAYMENT_METHOD_CONFIG];
+                PAYMENT_METHOD_CONFIG.push(
+                    { paymentProcessor: 'Test', paymentMethod: 'RequiredCard', enabledOneTime: true, enabledRecurring: true, supportsRecurring: true, initialPaymentOnRecurring: 'required' },
+                    { paymentProcessor: 'Test', paymentMethod: 'OptionalCard', enabledOneTime: true, enabledRecurring: true, supportsRecurring: true, initialPaymentOnRecurring: 'optional' },
+                    { paymentProcessor: 'Test', paymentMethod: 'UnsupportedCard', enabledOneTime: true, enabledRecurring: true, supportsRecurring: true, initialPaymentOnRecurring: 'unsupported' }
+                );
+            });
+            afterEach(() => {
+                PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, ...original);
+            });
+
+            it('adds a OneTime initial payment for a "required" method', async () => {
+                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
+                selectMethod(element, { name: 'RequiredCard', processor: 'Test' });
+                await Promise.resolve();
+                const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+                expect(intent.Recurring.Amount).toBe('15');
+                // Same amount/currency as the recurring schedule.
+                expect(intent.OneTime).toEqual({ Amount: '15', CurrencyISOCode: 'EUR' });
+            });
+
+            it('omits the OneTime block for an "optional" method (mandate only)', async () => {
+                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
+                selectMethod(element, { name: 'OptionalCard', processor: 'Test' });
+                await Promise.resolve();
+                const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+                expect(intent.OneTime).toBeUndefined();
+            });
+
+            it('omits the OneTime block for an "unsupported" method', async () => {
+                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
+                selectMethod(element, { name: 'UnsupportedCard', processor: 'Test' });
+                await Promise.resolve();
+                const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+                expect(intent.OneTime).toBeUndefined();
+            });
+
+            it('does not add a OneTime block for a one-time payment (initial-payment logic is recurring-only)', async () => {
+                const element = createComponent({ amount: 15, defaultFrequency: 'One time' });
+                selectMethod(element, { name: 'RequiredCard', processor: 'Test' });
+                await Promise.resolve();
+                const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
+                expect(intent.OneTime).toEqual({ Amount: '15', CurrencyISOCode: 'EUR' });
+                expect(intent.Recurring).toBeUndefined();
             });
         });
 
@@ -158,128 +238,40 @@ describe('paymentForm', () => {
         });
     });
 
-    describe('payment error', () => {
-        // Errors reach the form as PAYMENT_ERROR messages on the findockPaymentFlow
-        // channel (published by the Pay Button).
-        function dispatchPaymentResult(element, body) {
-            publish(undefined, FINDOCK_PAYMENT_FLOW, {
-                type: PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR,
-                body
-            });
+    // The Pay Button publishes payment errors on the findockPaymentFlow channel; the form
+    // re-surfaces them as events (extension point) without rendering its own banner.
+    describe('payment error propagation (extension point)', () => {
+        function publishError(body) {
+            publish(undefined, FINDOCK_PAYMENT_FLOW, { type: PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR, body });
             return Promise.resolve();
         }
 
-        function startPaymentAttempt() {
+        it('re-dispatches a paymenterror event carrying the error detail', async () => {
+            const element = createComponent();
+            const handler = jest.fn();
+            element.addEventListener('paymenterror', handler);
+            await publishError({ statusCode: 422, errorMessage: 'boom' });
+            expect(handler).toHaveBeenCalledTimes(1);
+            expect(handler.mock.calls[0][0].detail).toEqual({ statusCode: 422, errorMessage: 'boom' });
+        });
+
+        it('does not render an error banner of its own (the Pay Button shows the message)', async () => {
+            const element = createComponent();
+            await publishError({ statusCode: 422, errorMessage: 'boom' });
+            expect(element.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
+        });
+
+        it('dispatches paymentpending when a new attempt starts', async () => {
+            const element = createComponent();
+            const handler = jest.fn();
+            element.addEventListener('paymentpending', handler);
             publish(undefined, FINDOCK_PAYMENT_FLOW, {
                 type: PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_PENDING,
                 body: { isPending: true }
             });
-            return Promise.resolve();
-        }
-
-        it('shows no error banner before the pay button reports a result', () => {
-            const element = createComponent();
-            expect(element.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
-        });
-
-        it('shows the server-provided category message in the banner heading', async () => {
-            const element = createComponent();
-            await dispatchPaymentResult(element, {
-                statusCode: 422,
-                errorLabel: ERROR_LABEL_CONFIG,
-                errorMessage: 'Required fields are missing: [SourceConnector]'
-            });
-            const banner = element.shadowRoot.querySelector('.payment-error-banner');
-            expect(banner).not.toBeNull();
-            expect(banner.textContent).toContain(ERROR_LABEL_CONFIG);
-        });
-
-        it('never renders the raw error message when there is no field-level code', async () => {
-            const element = createComponent();
-            await dispatchPaymentResult(element, {
-                statusCode: 422,
-                errorLabel: ERROR_LABEL_GENERIC,
-                errorMessage: 'IBAN invalid: NL13TEST0123456789'
-            });
-            expect(element.shadowRoot.querySelector('.payment-error-banner').textContent).not.toContain('NL13TEST0123456789');
-        });
-
-        it('clears the error banner when a new payment attempt starts', async () => {
-            const element = createComponent();
-            await dispatchPaymentResult(element, {
-                statusCode: 422,
-                errorLabel: ERROR_LABEL_CONFIG,
-                errorMessage: 'IBAN invalid'
-            });
-            expect(element.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
-
-            await startPaymentAttempt();
-            expect(element.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
-        });
-
-        it('hides the summary banner when the error is field-level (the field shows the message)', async () => {
-            const element = createComponent();
-            await dispatchPaymentResult(element, {
-                statusCode: 422,
-                errorCode: '202',
-                errorMessage: 'The provided IBAN is not valid'
-            });
-            expect(element.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
-        });
-
-        it('shows the specific message in the banner for a non-field-level error', async () => {
-            const element = createComponent();
-            await dispatchPaymentResult(element, {
-                statusCode: 422,
-                errorCode: '998',
-                errorLabel: ERROR_LABEL_CONFIG,
-                errorMessage: 'No default setup record found for category PSP'
-            });
-            const details = element.shadowRoot.querySelectorAll('.payment-error-banner__detail');
-            expect(details).toHaveLength(1);
-            expect(details[0].textContent).toBe('No default setup record found for category PSP');
+            await Promise.resolve();
+            expect(handler).toHaveBeenCalledTimes(1);
         });
     });
 
-    describe('message scoping (groupId)', () => {
-        // The form reads its own key off the child pay button (payment-group-id).
-        function groupIdOf(element) {
-            return element.shadowRoot.querySelector('cpm-pay-button').paymentGroupId;
-        }
-
-        function publishError(groupId) {
-            publish(undefined, FINDOCK_PAYMENT_FLOW, {
-                type: PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR,
-                body: { statusCode: 422, groupId, errorLabel: ERROR_LABEL_GENERIC, errorMessage: 'boom' }
-            });
-            return Promise.resolve();
-        }
-
-        it('gives each form instance a distinct, non-empty group id', () => {
-            const a = createComponent();
-            const b = createComponent();
-            expect(groupIdOf(a)).toBeTruthy();
-            expect(groupIdOf(a)).not.toBe(groupIdOf(b));
-        });
-
-        it('shows the error only on the form it is addressed to', async () => {
-            const a = createComponent();
-            const b = createComponent();
-            await publishError(groupIdOf(a));
-            expect(a.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
-            expect(b.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
-        });
-
-        it('ignores an error addressed to a different group', async () => {
-            const a = createComponent();
-            await publishError('pf-does-not-exist');
-            expect(a.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
-        });
-
-        it('still handles a broadcast that carries no group id', async () => {
-            const a = createComponent();
-            await publishError(undefined);
-            expect(a.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
-        });
-    });
 });

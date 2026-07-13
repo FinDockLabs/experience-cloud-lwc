@@ -35,10 +35,10 @@
  *
  *   target
  *     Merchant account that receives the payment. Maps to PaymentMethod.Target.
- *     Not returned by GET /PaymentMethods — fill in manually after running the script.
- *     - Native FinDock processors: check Targets[] in the GET /PaymentMethods response.
- *     - PSPs (e.g. PaymentHub-Stripe): FinDock Setup → Processors & Methods →
- *       processor → Accounts tab → Merchant Account Name.
+ *     Optional — leave empty ('') to use the processor's Default Account (the
+ *     processor must have one, or the payment fails at runtime). Set explicitly
+ *     only to route to a non-default account. Not returned by the API for PSPs —
+ *     find it in FinDock Setup → Processors & Methods → processor → Accounts tab.
  *     Example: "Stripe-Main-Account"
  *
  *   parameters
@@ -57,6 +57,12 @@
  *                       Not a duplicate of enabledRecurring: the managed selector filters
  *                       recurring-tab methods with `supportsRecurring && enabledRecurring`,
  *                       so this guards against enabledRecurring being set true by mistake.
+ *   initialPaymentOnRecurring
+ *                       Method's policy for taking a first payment up front on a recurring
+ *                       payment: "required", "optional", "unsupported"/"no".
+ *                       Source: Processors[].InitialPaymentOnRecurring. The form adds an initial
+ *                       OneTime payment only for "required" methods (the Payment API rejects a
+ *                       recurring payment without it); other methods set up the mandate only.
  *   displayLabel        Label shown to the payer. Defaults to paymentMethod when omitted.
  *   redirectInstruction Message shown before PSP redirect (e.g. iDEAL, Bancontact).
  *
@@ -81,6 +87,7 @@ export const PAYMENT_METHOD_CONFIG = [
         isDefaultOneTime: true,
         isDefaultRecurring: false,
         supportsRecurring: true,
+        initialPaymentOnRecurring: 'optional',
         displayLabel: 'Credit Card',
         parameters: [
             {
@@ -110,6 +117,7 @@ export const PAYMENT_METHOD_CONFIG = [
         isDefaultOneTime: false,
         isDefaultRecurring: false,
         supportsRecurring: false,
+        initialPaymentOnRecurring: 'unsupported',
         displayLabel: 'iDEAL',
         redirectInstruction: 'You will be redirected to your bank to complete the payment.'
     }

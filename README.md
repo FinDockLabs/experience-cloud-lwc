@@ -26,11 +26,10 @@ Out of the box, the payment form uses fixed amount and frequency values. The for
 | `currency` | String | `EUR` | ISO currency code shown next to the amount (e.g. `EUR`, `USD`, `GBP`). |
 | `amount` | Integer | — | Amount the payer is charged, preset and displayed as read-only. |
 | `defaultFrequency` | String | `One time` | Payment frequency, preset and displayed as read-only. In App Builder / Experience Builder choose `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
-| `startDate` | String | today | Start date for recurring payments, preset in App Builder / Experience Builder. Optional start date in yyyy-mm-dd format (e.g. 2026-01-15). Falls back to today if invalid or omitted.|
 
-Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only frequency currently supported. Add a configurable frequency property if another frequency is needed. A new recurring payment also sends an initial `OneTime` charge (required by PSPs whose `InitialPaymentOnRecurring` is `required`).
+Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only frequency currently supported. Add a configurable frequency property if another frequency is needed.
 
-`Recurring.StartDate` is required by the Payment API, which expects `yyyy-mm-dd`. It comes from the `startDate` design property when one is set and correctly formatted; otherwise it defaults to today's date (`yyyy-mm-dd`, payer's local time).
+`Recurring.StartDate` is required by the Payment API (`yyyy-mm-dd`) for every source, so the form always sends it, defaulting to **today** (payer's local time). It is the *earliest* collection date — the API normalises the exact day to the org's payment schedule (e.g. day-of-month), so the day sent here need not be exact.
 
 ### `c-payment-selector` — API
 
@@ -95,17 +94,30 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 | --- | --- |
 | `paymentProcessor` | Name of the FinDock processor package (e.g. `PaymentHub-Stripe`). Maps to `PaymentMethod.Processor`. Source: `PaymentMethods[].Processors[].Name`. |
 | `paymentMethod` | Name of the payment method. Maps to `PaymentMethod.Name` in the PaymentIntent. Source: `PaymentMethods[].Name` from `GET /PaymentMethods`. |
-| `target` | Merchant account name. Maps to `PaymentMethod.Target`. Find it in FinDock Setup → Processors & Methods → Accounts tab. Not returned by the API — must be filled in manually. |
+| `target` | Merchant account name. Maps to `PaymentMethod.Target`. Find it in FinDock Setup → Processors & Methods → Accounts tab. Not returned by the API — must be filled in manually. Optional: leave empty to use the processor's default account, but the processor must have at least one account configured. |
 | `enabledOneTime` | Show this method for one-time payments. |
 | `enabledRecurring` | Show this method for recurring payments. Must be `false` when `supportsRecurring` is `false`. |
 | `isDefaultOneTime` | Pre-select this method for one-time payments. Exactly one entry should be `true`. |
 | `isDefaultRecurring` | Pre-select this method for recurring payments. Exactly one entry where `enabledRecurring` is `true` should be `true`. |
 | `supportsRecurring` | Whether the processor supports recurring payments for this method. Source: `SupportsRecurring` from `GET /PaymentMethods`. Defaults to `enabledRecurring` when omitted. |
+| `initialPaymentOnRecurring` | The method's policy for carrying an initial (first) payment on a recurring payment. One of `'required'`, `'optional'`, `'unsupported'`, `'no'`. Source: `InitialPaymentOnRecurring` from `GET /PaymentMethods`. Defaults to `'unsupported'` when omitted. The form adds an initial `OneTime` payment only for `'required'` methods. See below. |
 | `displayLabel` | Label shown to the payer. Defaults to `paymentMethod` when omitted. |
 | `redirectInstruction` | Message shown before PSP redirect (e.g. for iDEAL, Bancontact). Omit when there is no redirect. |
 | `parameters` | Array of additional processor parameters (e.g. `locale`, `description`). `null` or omit when none. Each entry: `name`, `value`, `visibleToCustomer`, `displayLabel`, `required`, `data_type`, `description`. |
 
 Note that `supportsRecurring` is different from `enabledRecurring`: the former indicates the processor's technical capability, the latter determines if the method is available to the payer. The managed `cpm-payment-method-selector` filters methods on the Recurring tab with `supportsRecurring && enabledRecurring`, so it acts as a runtime guard — if `enabledRecurring` is mistakenly set `true` on a method that doesn't actually support recurring, the method still won't appear on the recurring tab. Keep both fields consistent per the constraint above rather than relying on only one.
+
+### Recurring with an initial payment
+
+Some methods take a first payment up front when a recurring payment is set up. `paymentForm` adds an initial `OneTime` block **only when the method's `initialPaymentOnRecurring` is `required`** (the first payment is then charged immediately); `optional` / `unsupported` methods set up the mandate only.
+
+See [Initial payments for recurring payments](https://docs.findock.com/api/initial-payments-for-recurring-payments) for the full behavior and per-processor support.
+
+### Validation and empty states
+
+- **Invalid config** — if `PAYMENT_METHOD_CONFIG` is not an array, is empty, or an entry is missing `paymentMethod` / `paymentProcessor`, the form shows an error banner and hides the payment UI (no selector, no Pay Button) so a broken config can't be submitted.
+- **No method for the selected frequency** — if the config is valid but no method is enabled for the admin-selected frequency (e.g. `defaultFrequency` is `Monthly` but every method is one-time only), the form shows a "no payment methods available" banner in place of the selector.
+- **Runtime failures** — a well-formed config that references a method/processor/target not active in the org isn't caught up front; the PaymentIntent fails at runtime and the message is shown in the payment error banner. Regenerate the config (`npm run generate:config`) when the org's methods change.
 
 ### Flat parameter fields
 
@@ -147,24 +159,25 @@ See the full **Error and response codes** list in the [Payment API reference](ht
 **What the components do out of the box**
 
 - **Field-level errors** (bank-detail codes `201`–`206`) are highlighted inline on the matching input by the managed `cpm-payment-method-selector` — no code needed.
-- **Everything else** is shown by `c-payment-form` as a summary banner using `errorLabel`. When the error is field-level, the banner is suppressed so the message only appears on the field.
+- **Everything else** is shown by `cpm-pay-button` as its own inline message above the button. `c-payment-form` does **not** render a second banner, so the message isn't duplicated.
 
 **Extending / customizing**
 
-To add your own handling (redirect to a failure page, logging, custom copy, analytics), subscribe to the channel in a custom component and branch on `errorCode` / `statusCode`:
+`c-payment-form` subscribes to the `findockPaymentFlow` channel and re-surfaces the Pay Button's errors as an extension point, so you don't have to re-wire the channel:
 
+- it re-dispatches a **`paymenterror`** DOM event (`event.detail` is the error — `statusCode`, `errorCode`, `errorMessage`, `errorLabel`) and a **`paymentpending`** event when a new attempt starts;
+- it keeps the last error in the `paymentError` property.
+
+Wrap the component and listen to the event to add your own handling (redirect to a failure page, logging, a custom banner, analytics):
+
+```html
+<c-payment-form onpaymenterror={handlePaymentError}></c-payment-form>
+```
 ```js
-import { subscribe, MessageContext } from 'lightning/messageService';
-import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
-import { PAYMENT_FLOW_MESSAGE_TYPES } from 'cpm/paymentFlowChannel';
-
-// in connectedCallback: subscribe and dispatch on message.type
-handlePaymentFlowMessage(message) {
-    if (message?.type === PAYMENT_FLOW_MESSAGE_TYPES.PAYMENT_ERROR) {
-        const { statusCode, errorCode, errorLabel } = message.body;
-        // e.g. show errorLabel, or redirect to your failure URL for non-recoverable errors
-    }
+handlePaymentError(event) {
+    const { statusCode, errorCode, errorLabel } = event.detail;
+    // e.g. show errorLabel, or redirect to your failure URL for non-recoverable errors
 }
 ```
 
-Or, for post-payment handling on the button itself, read the `PaymentIntentResponseContext` returned by `cpm-pay-button` (same `statusCode` / `errorCode` / `errorMessage` / `errorLabel` fields).
+If you fork the component, bind to `paymentError` in the template to render your own banner. You can also read the `PaymentIntentResponseContext` returned by `cpm-pay-button` directly (same `statusCode` / `errorCode` / `errorMessage` / `errorLabel` fields).

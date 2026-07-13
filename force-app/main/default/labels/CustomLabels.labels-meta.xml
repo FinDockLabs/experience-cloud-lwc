@@ -100,22 +100,13 @@
         <shortDescription>Error shown when a config entry is missing a required field</shortDescription>
         <value>Payment method configuration entry is missing required field: {0}. Check paymentMethodConfiguration.js.</value>
     </labels>
-    <!-- Debug -->
     <labels>
-        <fullName>ec_debug_error_title</fullName>
+        <fullName>ec_error_no_methods_for_frequency</fullName>
         <categories>Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Title of the temporary debug error panel</shortDescription>
-        <value>Payment Error (debug)</value>
-    </labels>
-    <labels>
-        <fullName>ec_debug_config_error_title</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Title of the configuration error debug panel</shortDescription>
-        <value>Configuration Error (debug)</value>
+        <shortDescription>Shown when no payment method is available for the selected frequency</shortDescription>
+        <value>No payment methods are available for the selected payment frequency.</value>
     </labels>
     <labels>
         <fullName>ec_header_personal_details</fullName>
