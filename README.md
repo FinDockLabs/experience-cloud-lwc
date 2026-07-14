@@ -150,7 +150,7 @@ The components are built to run on a multilingual Experience Cloud (LWR) site �
 
 **Translating / overriding the text** (done in your own org, per language):
 
-- **Our packaged labels** — in Setup → Custom Labels, open a label and add a *Local Translations/Overrides* entry per language. This also overrides the English source. Overrides are not updated when we change the English source in a release, so keep a translation-management process.
+- **Packaged labels** — in Setup → Custom Labels, open a label and add a *Local Translations/Overrides* entry per language. This also overrides the English source. Overrides are not updated when we change the English source in a release, so keep a translation-management process.
 - **Your Flow screens** and **picklist values** — Setup → Translation Workbench → Translate (Setup Component = *Flow*). Note: STF file import rejects Flow components, so flows must be translated through the Translate UI.
 - **Experience Builder content** (titles, rich text) — per-language values in the component property editor, or site export/import.
 

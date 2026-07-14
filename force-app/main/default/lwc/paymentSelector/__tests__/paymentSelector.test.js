@@ -3,14 +3,15 @@ import PaymentSelector from 'c/paymentSelector';
 
 const MOCK_CONFIG = [
     {
-        paymentMethod: 'CreditCard',
         paymentProcessor: 'PaymentHub-Stripe',
+        paymentMethod: 'CreditCard',
         target: 'Stripe-Main-Account',
         enabledOneTime: true,
         enabledRecurring: true,
         isDefaultOneTime: true,
         isDefaultRecurring: false,
         supportsRecurring: true,
+        initialPaymentOnRecurring: 'optional',
         displayLabel: 'Credit Card',
         parameters: [
             {
@@ -23,8 +24,8 @@ const MOCK_CONFIG = [
         ]
     },
     {
-        paymentMethod: 'Ideal',
         paymentProcessor: 'PaymentHub-Stripe',
+        paymentMethod: 'Ideal',
         target: 'Stripe-Main-Account',
         enabledOneTime: true,
         enabledRecurring: false,
@@ -32,6 +33,7 @@ const MOCK_CONFIG = [
         isDefaultRecurring: false,
         supportsRecurring: false,
         displayLabel: 'iDEAL',
+        initialPaymentOnRecurring: 'unsupported',
         redirectInstruction: 'You will be redirected to your bank.'
     }
 ];

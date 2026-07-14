@@ -4,9 +4,6 @@ export default class PaymentSelector extends LightningElement {
     @api frequency = 'onetime';
     @api paymentGroupId;
 
-    _config;
-    _enrichedConfig = null;
-
     @api
     get config() {
         return this._config;
@@ -15,6 +12,9 @@ export default class PaymentSelector extends LightningElement {
         this._config = value;
         this._enrichedConfig = this._buildConfig(value);
     }
+
+    _config;
+    _enrichedConfig = null;
 
     get enrichedConfigString() {
         return this._enrichedConfig ? JSON.stringify(this._enrichedConfig) : null;
