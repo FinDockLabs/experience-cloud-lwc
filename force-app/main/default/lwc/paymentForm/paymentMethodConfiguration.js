@@ -63,8 +63,14 @@
  *                       Source: Processors[].InitialPaymentOnRecurring. The form adds an initial
  *                       OneTime payment only for "required" methods (the Payment API rejects a
  *                       recurring payment without it); other methods set up the mandate only.
- *   displayLabel        Label shown to the payer. Defaults to paymentMethod when omitted.
+ *   displayLabel        Label shown to the payer. A plain string, or a Custom Label
+ *                       reference (labels.<name>) so the name follows the site language.
+ *                       Omit to fall back to paymentMethod (the API method name) — the
+ *                       smart default. See paymentFormLabels.js and the README's
+ *                       Localization section.
  *   redirectInstruction Message shown before PSP redirect (e.g. iDEAL, Bancontact).
+ *                       Payer-facing — use a Custom Label reference (labels.<name>) to
+ *                       keep it translatable. Omit when there is no redirect.
  *
  * PARAMETER FIELDS  (each entry in the parameters array)
  *
@@ -90,7 +96,7 @@ export const PAYMENT_METHOD_CONFIG = [
         isDefaultRecurring: false,
         supportsRecurring: true,
         initialPaymentOnRecurring: 'optional',
-        displayLabel: 'Credit Card',
+        displayLabel: labels.ec_label_method_credit_card,
         parameters: [
             {
                 name: 'locale',
@@ -121,6 +127,6 @@ export const PAYMENT_METHOD_CONFIG = [
         supportsRecurring: false,
         initialPaymentOnRecurring: 'unsupported',
         displayLabel: 'iDEAL',
-        redirectInstruction: 'You will be redirected to your bank to complete the payment.'
+        redirectInstruction: labels.ec_label_redirect_instruction
     }
 ];

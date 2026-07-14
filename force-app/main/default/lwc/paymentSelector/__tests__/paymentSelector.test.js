@@ -92,6 +92,19 @@ describe('paymentSelector', () => {
             expect(first.processorFriendlyName).toBe('Stripe Payments');
         });
 
+        it('passes a provided method displayLabel through unchanged', () => {
+            const element = createComponent({ config: MOCK_CONFIG });
+            const [first] = getParsedConfig(element);
+            expect(first.displayLabel).toBe('Credit Card');
+        });
+
+        it('defaults method displayLabel to the paymentMethod name (smart default)', () => {
+            const config = [{ ...MOCK_CONFIG[0], displayLabel: undefined }];
+            const element = createComponent({ config });
+            const [first] = getParsedConfig(element);
+            expect(first.displayLabel).toBe('CreditCard');
+        });
+
         it('always sets active to true', () => {
             const element = createComponent({ config: MOCK_CONFIG });
             getParsedConfig(element).forEach(m => expect(m.active).toBe(true));

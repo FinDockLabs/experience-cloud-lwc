@@ -101,8 +101,8 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 | `isDefaultRecurring` | Pre-select this method for recurring payments. Exactly one entry where `enabledRecurring` is `true` should be `true`. |
 | `supportsRecurring` | Whether the processor supports recurring payments for this method. Source: `SupportsRecurring` from `GET /PaymentMethods`. Defaults to `enabledRecurring` when omitted. |
 | `initialPaymentOnRecurring` | The method's policy for carrying an initial (first) payment on a recurring payment. One of `'required'`, `'optional'`, `'unsupported'`, `'no'`. Source: `InitialPaymentOnRecurring` from `GET /PaymentMethods`. Defaults to `'unsupported'` when omitted. The form adds an initial `OneTime` payment only for `'required'` methods. See below. |
-| `displayLabel` | Label shown to the payer. Defaults to `paymentMethod` when omitted. |
-| `redirectInstruction` | Message shown before PSP redirect (e.g. for iDEAL, Bancontact). Omit when there is no redirect. |
+| `displayLabel` | Label shown to the payer. A plain string, or a Custom Label reference (`labels.<name>`) so the name follows the site language. Defaults to `paymentMethod` (the API method name) when omitted — the smart default. See [Localization](#localization). |
+| `redirectInstruction` | Message shown before PSP redirect (e.g. for iDEAL, Bancontact). Payer-facing — use a Custom Label reference (`labels.<name>`) to keep it translatable. Omit when there is no redirect. |
 | `parameters` | Array of additional processor parameters (e.g. `locale`, `description`). `null` or omit when none. Each entry: `name`, `value`, `visibleToCustomer`, `displayLabel`, `required`, `data_type`, `description`. |
 
 Note that `supportsRecurring` is different from `enabledRecurring`: the former indicates the processor's technical capability, the latter determines if the method is available to the payer. The managed `cpm-payment-method-selector` filters methods on the Recurring tab with `supportsRecurring && enabledRecurring`, so it acts as a runtime guard — if `enabledRecurring` is mistakenly set `true` on a method that doesn't actually support recurring, the method still won't appear on the recurring tab. Keep both fields consistent per the constraint above rather than relying on only one.
@@ -126,10 +126,37 @@ See [Initial payments for recurring payments](https://docs.findock.com/api/initi
 | `name` | Parameter key (maps to `PaymentMethod.Parameters[name]`). Source: `Parameters[].Name` from `GET /PaymentMethods` |
 | `value` | Value sent to the processor. Leave empty for payer-filled fields |
 | `visibleToCustomer` | `true` → render as an input for the payer; `false` → send silently (default) |
-| `displayLabel` | Label shown to the payer when `visibleToCustomer` is `true`. Defaults to `name` |
+| `displayLabel` | Label shown to the payer when `visibleToCustomer` is `true`. A plain string, or a Custom Label reference (`labels.<name>`) for translation. Defaults to `name` |
 | `required` | Indicates if the processor requires this parameter |
 | `data_type` | `String`, `Enum`, `Boolean`, or `Number` |
 | `description` | Explanation of the parameter (for internal use and guidance) |
+
+## Localization
+
+The components are built to run on a multilingual Experience Cloud (LWR) site — one site with several languages enabled, not a page per language. Guests pick a language with the standard [Language Selector](https://help.salesforce.com/s/articleView?id=sf.rss_language_picker.htm) (the page reloads translated); authenticated users get their profile language. Don't build a language switcher into the form — rely on the standard component.
+
+**All payer-facing text is a Custom Label.** Every string our components render comes from a Custom Label in the `Experience Cloud` category (see `force-app/main/default/labels/CustomLabels.labels-meta.xml` and the `paymentFormLabels.js` registry). This includes the strings you set in `paymentMethodConfiguration.js`:
+
+- **Payment method names** (`displayLabel`) and **redirect messages** (`redirectInstruction`) — reference a Custom Label so they follow the site language:
+
+  ```js
+  import {labels} from './paymentFormLabels';
+  // ...
+  displayLabel: labels.ec_label_method_credit_card,
+  redirectInstruction: labels.ec_label_redirect_instruction,
+  ```
+
+  Omit a method's `displayLabel` to fall back to the API method name (the **smart default**). Visible parameter `displayLabel`s work the same way, falling back to the parameter `name`.
+
+**Translating / overriding the text** (done in your own org, per language):
+
+- **Our packaged labels** — in Setup → Custom Labels, open a label and add a *Local Translations/Overrides* entry per language. This also overrides the English source. Overrides are not updated when we change the English source in a release, so keep a translation-management process.
+- **Your Flow screens** and **picklist values** — Setup → Translation Workbench → Translate (Setup Component = *Flow*). Note: STF file import rejects Flow components, so flows must be translated through the Translate UI.
+- **Experience Builder content** (titles, rich text) — per-language values in the component property editor, or site export/import.
+
+Translation Workbench must be enabled and languages added before installing, and LWR requires a **site republish** after language configuration changes. Untranslated elements fall back to the default (English) label.
+
+**Numbers and dates.** The amount is formatted with `Intl.NumberFormat` against `@salesforce/i18n/locale` (the active locale), so grouping/decimal separators follow the payer's language. `Recurring.StartDate` is sent to the API as an ISO date (`yyyy-mm-dd`) and is not displayed, so it needs no locale formatting. On LWR the timezone follows the browser.
 
 ## How it works
 
