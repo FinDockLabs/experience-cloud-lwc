@@ -48,49 +48,50 @@ public with sharing class PaymentMethodSourceController {
 
     @TestVisible
     private static List<PaymentMethodInfo> parseResponse(String responseBody) {
-        List<PaymentMethodInfo> methods = new List<PaymentMethodInfo>();
+        List<PaymentMethodInfo> paymentMethods = new List<PaymentMethodInfo>();
         if (String.isBlank(responseBody)) {
-            return methods;
+            return paymentMethods;
         }
-        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(responseBody);
-        List<Object> rawMethods = (List<Object>) body.get('PaymentMethods');
+
+        Map<String, Object> deserializedBody = (Map<String, Object>) JSON.deserializeUntyped(responseBody);
+        List<Object> rawMethods = (List<Object>) deserializedBody.get('PaymentMethods');
         if (rawMethods == null) {
-            return methods;
+            return paymentMethods;
         }
 
-        for (Object m : rawMethods) {
-            Map<String, Object> method = (Map<String, Object>) m;
-            PaymentMethodInfo info = new PaymentMethodInfo();
-            info.name = (String) method.get('Name');
-            info.processors = new List<ProcessorInfo>();
+        for (Object rawMethod : rawMethods) {
+            Map<String, Object> methodData = (Map<String, Object>) rawMethod;
+            PaymentMethodInfo methodInfo = new PaymentMethodInfo();
+            methodInfo.name = (String) methodData.get('Name');
+            methodInfo.processors = new List<ProcessorInfo>();
 
-            List<Object> rawProcessors = (List<Object>) method.get('Processors');
+            List<Object> rawProcessors = (List<Object>) methodData.get('Processors');
             if (rawProcessors != null) {
-                for (Object p : rawProcessors) {
-                    Map<String, Object> proc = (Map<String, Object>) p;
-                    ProcessorInfo procInfo = new ProcessorInfo();
-                    procInfo.name = (String) proc.get('Name');
-                    procInfo.supportsRecurring = proc.get('SupportsRecurring') == true;
-                    procInfo.initialPaymentOnRecurring = (String) proc.get('InitialPaymentOnRecurring');
-                    procInfo.parameters = new List<MethodParameter>();
+                for (Object rawProcessor : rawProcessors) {
+                    Map<String, Object> processorData = (Map<String, Object>) rawProcessor;
+                    ProcessorInfo processorInfo = new ProcessorInfo();
+                    processorInfo.name = (String) processorData.get('Name');
+                    processorInfo.supportsRecurring = processorData.get('SupportsRecurring') == true;
+                    processorInfo.initialPaymentOnRecurring = (String) processorData.get('InitialPaymentOnRecurring');
+                    processorInfo.parameters = new List<MethodParameter>();
 
-                    List<Object> rawParams = (List<Object>) proc.get('Parameters');
-                    if (rawParams != null) {
-                        for (Object rp : rawParams) {
-                            Map<String, Object> param = (Map<String, Object>) rp;
-                            MethodParameter paramInfo = new MethodParameter();
-                            paramInfo.name = (String) param.get('Name');
-                            paramInfo.required = param.get('Required') == true;
-                            paramInfo.dataType = (String) param.get('DataType');
-                            paramInfo.description = (String) param.get('Description');
-                            procInfo.parameters.add(paramInfo);
+                    List<Object> rawParameters = (List<Object>) processorData.get('Parameters');
+                    if (rawParameters != null) {
+                        for (Object rawParameter : rawParameters) {
+                            Map<String, Object> parameterData = (Map<String, Object>) rawParameter;
+                            MethodParameter parameterInfo = new MethodParameter();
+                            parameterInfo.name = (String) parameterData.get('Name');
+                            parameterInfo.required = parameterData.get('Required') == true;
+                            parameterInfo.dataType = (String) parameterData.get('DataType');
+                            parameterInfo.description = (String) parameterData.get('Description');
+                            processorInfo.parameters.add(parameterInfo);
                         }
                     }
-                    info.processors.add(procInfo);
+                    methodInfo.processors.add(processorInfo);
                 }
             }
-            methods.add(info);
+            paymentMethods.add(methodInfo);
         }
-        return methods;
+        return paymentMethods;
     }
 }
