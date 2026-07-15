@@ -53,9 +53,6 @@ for (Object m : methods) {
         Map<String, Object> proc = (Map<String, Object>) p;
         String procName = (String) proc.get('Name');
         Boolean supportsRecurring = proc.get('SupportsRecurring') == true;
-        String initialPaymentOnRecurring = (String) proc.get('InitialPaymentOnRecurring');
-        if (initialPaymentOnRecurring == null) initialPaymentOnRecurring = 'unsupported';
-
         List<Object> params = new List<Object>();
         List<Object> rawParams = (List<Object>) proc.get('Parameters');
         if (rawParams != null) {
@@ -67,7 +64,6 @@ for (Object m : methods) {
                     'visibleToCustomer' => false,
                     'displayLabel'      => param.get('Name'),
                     'required'          => param.get('Required'),
-                    'data_type'         => param.get('DataType'),
                     'description'       => param.get('Description') != null ? param.get('Description') : ''
                 });
             }
@@ -81,10 +77,10 @@ for (Object m : methods) {
             'enabledRecurring'   => supportsRecurring,
             'isDefaultOneTime'   => false,
             'isDefaultRecurring' => false,
-            'supportsRecurring'  => supportsRecurring,
-            'initialPaymentOnRecurring' => initialPaymentOnRecurring,
             'displayLabel'       => methodName,
-            'parameters'         => params.isEmpty() ? null : params
+            'parameters'         => params.isEmpty() ? null : params,
+            // Sort/default-selection helpers only — stripped before this map is serialized below.
+            '_supportsRecurring' => supportsRecurring
         }));
     }
 }
@@ -102,7 +98,12 @@ for (ConfigEntry entry : entries) {
 if (!config.isEmpty()) {
     Map<String, Object> firstEntry = (Map<String, Object>) config[0];
     firstEntry.put('isDefaultOneTime', true);
-    firstEntry.put('isDefaultRecurring', firstEntry.get('supportsRecurring') == true);
+    firstEntry.put('isDefaultRecurring', firstEntry.get('_supportsRecurring') == true);
+}
+
+// Drop the sort/default-selection helper before emitting — it's not a config field.
+for (Object entry : config) {
+    ((Map<String, Object>) entry).remove('_supportsRecurring');
 }
 
 // Single-line output with marker — extracted by generate-payment-config.mjs

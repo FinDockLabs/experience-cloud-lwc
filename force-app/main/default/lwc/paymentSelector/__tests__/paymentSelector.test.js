@@ -1,5 +1,6 @@
 import { createElement } from 'lwc';
 import PaymentSelector from 'c/paymentSelector';
+import getPaymentMethods from '@salesforce/apex/PaymentMethodSourceController.getPaymentMethods';
 
 const MOCK_CONFIG = [
     {
@@ -10,15 +11,12 @@ const MOCK_CONFIG = [
         enabledRecurring: true,
         isDefaultOneTime: true,
         isDefaultRecurring: false,
-        supportsRecurring: true,
-        initialPaymentOnRecurring: 'optional',
         displayLabel: 'Credit Card',
         parameters: [
             {
                 name: 'locale',
                 value: 'nl-NL',
                 visibleToCustomer: false,
-                data_type: 'String',
                 description: 'Locale string'
             }
         ]
@@ -31,10 +29,28 @@ const MOCK_CONFIG = [
         enabledRecurring: false,
         isDefaultOneTime: false,
         isDefaultRecurring: false,
-        supportsRecurring: false,
         displayLabel: 'iDEAL',
-        initialPaymentOnRecurring: 'unsupported',
         redirectInstruction: 'You will be redirected to your bank.'
+    }
+];
+
+const MOCK_PAYMENT_METHODS = [
+    {
+        name: 'CreditCard',
+        processors: [
+            {
+                name: 'PaymentHub-Stripe',
+                supportsRecurring: true,
+                initialPaymentOnRecurring: 'optional',
+                parameters: [{ name: 'locale', required: false, dataType: 'String', description: '' }]
+            }
+        ]
+    },
+    {
+        name: 'Ideal',
+        processors: [
+            { name: 'PaymentHub-Stripe', supportsRecurring: false, initialPaymentOnRecurring: 'unsupported', parameters: [] }
+        ]
     }
 ];
 
@@ -43,6 +59,11 @@ function createComponent(props = {}) {
     Object.assign(element, props);
     document.body.appendChild(element);
     return element;
+}
+
+async function emitPaymentMethods(paymentMethods) {
+    getPaymentMethods.emit(paymentMethods);
+    await Promise.resolve();
 }
 
 // payment-method-config is an LWC property, not an HTML attribute — access via JS property
@@ -112,14 +133,6 @@ describe('paymentSelector', () => {
             getParsedConfig(element).forEach(m => expect(m.active).toBe(true));
         });
 
-        it('uses supportsRecurring from enabledRecurring when not explicitly set', () => {
-            const config = [{ ...MOCK_CONFIG[0] }];
-            delete config[0].supportsRecurring;
-            const element = createComponent({ config });
-            const [first] = getParsedConfig(element);
-            expect(first.supportsRecurring).toBe(true);
-        });
-
         it('defaults boolean flags to false when omitted', () => {
             const config = [{ paymentMethod: 'CreditCard', paymentProcessor: 'TestProcessor', target: 'acc' }];
             const element = createComponent({ config });
@@ -143,25 +156,69 @@ describe('paymentSelector', () => {
         });
     });
 
+
+    describe("live payment method enrichment", () => {
+        it('falls back supportsRecurring to enabledRecurring before the live methods load', () => {
+            const element = createComponent({ config: MOCK_CONFIG });
+            const [first] = getParsedConfig(element);
+            expect(first.supportsRecurring).toBe(true);
+        });
+
+        it('defaults initialPaymentOnRecurring to unsupported before the live methods load', () => {
+            const element = createComponent({ config: MOCK_CONFIG });
+            const [first] = getParsedConfig(element);
+            expect(first.initialPaymentOnRecurring).toBe('unsupported');
+        });
+
+        it('uses supportsRecurring and initialPaymentOnRecurring from the live payment methods once loaded', async () => {
+            const element = createComponent({ config: MOCK_CONFIG });
+            await emitPaymentMethods(MOCK_PAYMENT_METHODS);
+            const [first] = getParsedConfig(element);
+            expect(first.supportsRecurring).toBe(true);
+            expect(first.initialPaymentOnRecurring).toBe('optional');
+        });
+
+        it('ignores an enabledRecurring mismatch once the live payment methods say the processor cannot recur', async () => {
+            const config = [{ ...MOCK_CONFIG[0], paymentMethod: 'Ideal', enabledRecurring: true }];
+            const element = createComponent({ config });
+            await emitPaymentMethods(MOCK_PAYMENT_METHODS);
+            const [first] = getParsedConfig(element);
+            expect(first.supportsRecurring).toBe(false);
+        });
+
+        it('re-enriches already-rendered config once the live payment methods resolve', async () => {
+            const element = createComponent({ config: MOCK_CONFIG });
+            expect(getParsedConfig(element)[0].initialPaymentOnRecurring).toBe('unsupported');
+            await emitPaymentMethods(MOCK_PAYMENT_METHODS);
+            expect(getParsedConfig(element)[0].initialPaymentOnRecurring).toBe('optional');
+        });
+    });
+
     describe('parameter enrichment', () => {
-        it('uses data_type when present', () => {
+        it('defaults data_type to String before the live methods load', () => {
             const element = createComponent({ config: MOCK_CONFIG });
             const [first] = getParsedConfig(element);
             expect(first.parameters[0].data_type).toBe('String');
         });
 
-        it('falls back to dataType (camelCase) when data_type is absent', () => {
-            const config = [{ ...MOCK_CONFIG[0], parameters: [{ name: 'locale', dataType: 'String' }] }];
+        it('uses data_type from the live payment methods once loaded', async () => {
+            const config = [{
+                ...MOCK_CONFIG[0],
+                parameters: [{ name: 'locale' }]
+            }];
+            const liveMethods = [{
+                name: 'CreditCard',
+                processors: [{
+                    name: 'PaymentHub-Stripe',
+                    supportsRecurring: true,
+                    initialPaymentOnRecurring: 'optional',
+                    parameters: [{ name: 'locale', dataType: 'Enum' }]
+                }]
+            }];
             const element = createComponent({ config });
+            await emitPaymentMethods(liveMethods);
             const [first] = getParsedConfig(element);
-            expect(first.parameters[0].data_type).toBe('String');
-        });
-
-        it('defaults data_type to String when neither field is present', () => {
-            const config = [{ ...MOCK_CONFIG[0], parameters: [{ name: 'locale' }] }];
-            const element = createComponent({ config });
-            const [first] = getParsedConfig(element);
-            expect(first.parameters[0].data_type).toBe('String');
+            expect(first.parameters[0].data_type).toBe('Enum');
         });
 
         it('defaults visibleToCustomer to false', () => {

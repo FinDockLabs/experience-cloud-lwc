@@ -109,6 +109,14 @@
         <value>No payment methods are available for the selected payment frequency.</value>
     </labels>
     <labels>
+        <fullName>ec_error_live_payment_methods_unavailable</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Shown when live payment method lookup fails and falls back to config defaults</shortDescription>
+        <value>We couldn't verify live payment method details with the processor. Some options shown may be inaccurate.</value>
+    </labels>
+    <labels>
         <fullName>ec_header_personal_details</fullName>
         <categories>Experience Cloud</categories>
         <language>en_US</language>

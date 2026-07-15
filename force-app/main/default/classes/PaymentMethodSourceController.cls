@@ -1,11 +1,10 @@
 /**
- * Live payment method catalog for the org, sourced from cpm.API_PaymentMethod_V2 (the same
- * data GET /PaymentMethods returns). Lets LWCs enrich the static paymentMethodConfiguration.js
- * entries at runtime with values that must always match the org's actual processor
- * configuration — supportsRecurring, initialPaymentOnRecurring, parameter data types — so a
- * hand-edited static file can't drift out of sync and send an invalid PaymentIntent.
+ * Live source of the org's payment methods, read from cpm.API_PaymentMethod_V2 (the same data
+ * GET /PaymentMethods returns). Lets LWCs enrich the static paymentMethodConfiguration.js entries
+ * at runtime with values that must always match the org's actual processor configuration —
+ * supportsRecurring, initialPaymentOnRecurring, parameter data types.
  */
-public with sharing class PaymentMethodCatalogController {
+public with sharing class PaymentMethodSourceController {
 
     public class MethodParameter {
         @AuraEnabled public String name;
@@ -28,18 +27,32 @@ public with sharing class PaymentMethodCatalogController {
 
     @AuraEnabled(Cacheable=true)
     public static List<PaymentMethodInfo> getPaymentMethods() {
-        RestRequest req = new RestRequest();
-        RestResponse res = new RestResponse();
-        RestContext.request = req;
-        RestContext.response = res;
-        req.requestURI = '/services/apexrest/cpm/v2/PaymentMethods';
-        req.httpMethod = 'GET';
-        req.headers.put('verbose', 'true');
+        try {
+            RestRequest req = new RestRequest();
+            RestResponse res = new RestResponse();
+            RestContext.request = req;
+            RestContext.response = res;
+            req.requestURI = '/services/apexrest/cpm/v2/PaymentMethods';
+            req.httpMethod = 'GET';
+            req.headers.put('verbose', 'true');
 
-        cpm.API_PaymentMethod_V2.getPaymentMethods();
+            cpm.API_PaymentMethod_V2.getPaymentMethods();
 
+            return parseResponse(res.responseBody == null ? null : res.responseBody.toString());
+        } catch (Exception e) {
+            AuraHandledException auraHandledException = new AuraHandledException(e.getMessage());
+            auraHandledException.setMessage(e.getMessage());
+            throw auraHandledException;
+        }
+    }
+
+    @TestVisible
+    private static List<PaymentMethodInfo> parseResponse(String responseBody) {
         List<PaymentMethodInfo> methods = new List<PaymentMethodInfo>();
-        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
+        if (String.isBlank(responseBody)) {
+            return methods;
+        }
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(responseBody);
         List<Object> rawMethods = (List<Object>) body.get('PaymentMethods');
         if (rawMethods == null) {
             return methods;

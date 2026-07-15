@@ -87,8 +87,6 @@ function formatEntry(entry) {
         `        enabledRecurring: ${entry.enabledRecurring},`,
         `        isDefaultOneTime: ${entry.isDefaultOneTime},`,
         `        isDefaultRecurring: ${entry.isDefaultRecurring},`,
-        `        supportsRecurring: ${entry.supportsRecurring},`,
-        `        initialPaymentOnRecurring: '${entry.initialPaymentOnRecurring ?? 'unsupported'}',`,
     ];
 
     const params = entry.parameters;
@@ -104,7 +102,6 @@ function formatEntry(entry) {
             lines.push(`                visibleToCustomer: ${p.visibleToCustomer},`);
             lines.push(`                displayLabel: '${p.displayLabel ?? p.name}',`);
             lines.push(`                required: ${p.required ?? false},`);
-            lines.push(`                data_type: '${p.data_type ?? 'String'}',`);
             lines.push(`                description: '${desc}'`);
             lines.push(`            }${comma}`);
         });

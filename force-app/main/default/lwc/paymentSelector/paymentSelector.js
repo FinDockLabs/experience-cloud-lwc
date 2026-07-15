@@ -1,4 +1,5 @@
-import { LightningElement, api } from 'lwc';
+import { LightningElement, api, wire } from 'lwc';
+import getPaymentMethods from '@salesforce/apex/PaymentMethodSourceController.getPaymentMethods';
 
 export default class PaymentSelector extends LightningElement {
     @api frequency = 'onetime';
@@ -10,18 +11,37 @@ export default class PaymentSelector extends LightningElement {
     }
     set config(value) {
         this._config = value;
-        this._enrichedConfig = this._buildConfig(value);
     }
 
     _config;
-    _enrichedConfig = null;
+    _liveMethodsIndex = null;
 
     get enrichedConfigString() {
-        return this._enrichedConfig ? JSON.stringify(this._enrichedConfig) : null;
+        const enriched = this._buildConfig(this._config);
+        return enriched ? JSON.stringify(enriched) : null;
     }
 
     get normalizedFrequency() {
         return (this.frequency ?? 'onetime').toLowerCase();
+    }
+
+    @wire(getPaymentMethods)
+    wiredPaymentMethods({ data, error }) {
+        if (data) {
+            this._liveMethodsIndex = this._indexPaymentMethods(data);
+        } else if (error) {
+            this._liveMethodsIndex = null;
+        }
+    }
+
+    _indexPaymentMethods(methods) {
+        const index = new Map();
+        for (const method of methods ?? []) {
+            for (const proc of method.processors ?? []) {
+                index.set(`${method.name}::${proc.name}`, proc);
+            }
+        }
+        return index;
     }
 
     _buildConfig(value) {
@@ -37,6 +57,7 @@ export default class PaymentSelector extends LightningElement {
     }
 
     _enrich(m) {
+        const live = this._liveMethodsIndex?.get(`${m.paymentMethod}::${m.paymentProcessor}`);
         return {
             key: `${m.paymentProcessor}-${m.paymentMethod}`,
             name: m.paymentMethod,
@@ -52,20 +73,22 @@ export default class PaymentSelector extends LightningElement {
             enabledRecurring: m.enabledRecurring ?? false,
             isDefaultOneTime: m.isDefaultOneTime ?? false,
             isDefaultRecurring: m.isDefaultRecurring ?? false,
-            supportsRecurring: m.supportsRecurring ?? m.enabledRecurring ?? false,
+            supportsRecurring: live?.supportsRecurring ?? m.enabledRecurring ?? false,
+            initialPaymentOnRecurring: live?.initialPaymentOnRecurring ?? 'unsupported',
             active: true,
-            parameters: this._enrichParameters(m.parameters)
+            parameters: this._enrichParameters(m.parameters, live?.parameters)
         };
     }
 
-    _enrichParameters(parameters) {
+    _enrichParameters(parameters, liveParameters) {
+        const liveByName = new Map((liveParameters ?? []).map(p => [p.name, p]));
         return (parameters ?? []).map(p => ({
             name: p.name,
             value: p.value ?? '',
             visibleToCustomer: p.visibleToCustomer ?? false,
             displayLabel: p.displayLabel ?? p.name,
             required: p.required ?? false,
-            data_type: p.data_type ?? p.dataType ?? 'String',
+            data_type: liveByName.get(p.name)?.dataType ?? 'String',
             description: p.description ?? ''
         }));
     }

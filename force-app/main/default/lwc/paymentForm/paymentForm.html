@@ -14,6 +14,17 @@
                 </div>
             </template>
             <template lwc:else>
+                <template lwc:if={liveMethodsError}>
+                    <div class="payment-error-banner" role="alert">
+                        <lightning-icon icon-name="utility:error"
+                                        variant="error"
+                                        size="x-small"
+                                        class="payment-error-banner__icon"
+                                        aria-hidden="true">
+                        </lightning-icon>
+                        <p class="payment-error-banner__message">{liveMethodsError}</p>
+                    </div>
+                </template>
                 <div class="payment-summary">
                     <p class="payment-summary__amount">{formattedAmount}</p>
                     <p class="payment-summary__frequency">{frequencyLabel}</p>
