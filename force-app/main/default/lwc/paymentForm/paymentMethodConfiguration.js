@@ -57,14 +57,23 @@
  *                       Not a duplicate of enabledRecurring: the managed selector filters
  *                       recurring-tab methods with `supportsRecurring && enabledRecurring`,
  *                       so this guards against enabledRecurring being set true by mistake.
- *   initialPaymentOnRecurring
- *                       Method's policy for taking a first payment up front on a recurring
- *                       payment: "required", "optional", "unsupported"/"no".
- *                       Source: Processors[].InitialPaymentOnRecurring. The form adds an initial
- *                       OneTime payment only for "required" methods (the Payment API rejects a
- *                       recurring payment without it); other methods set up the mandate only.
- *   displayLabel        Label shown to the payer. Defaults to paymentMethod when omitted.
+ *   recurringRequiresInitialPayment
+ *                       Whether this method requires a first payment up front when a recurring
+ *                       payment is set up. Source: the org derives it from
+ *                       Processors[].InitialPaymentOnRecurring (true only when it is "required";
+ *                       "optional"/"unsupported" are false). The form adds an initial OneTime
+ *                       payment only when this is true (the Payment API rejects such a recurring
+ *                       payment without it); otherwise the method sets up the mandate only.
+ *                       Overridden at runtime by the live org value, so this static value is only
+ *                       a fallback.
+ *   displayLabel        Label shown to the payer. A plain string, or a Custom Label
+ *                       reference (labels.<name>) so the name follows the site language.
+ *                       Omit to fall back to paymentMethod (the API method name) — the
+ *                       smart default. See paymentFormLabels.js and the README's
+ *                       Localization section.
  *   redirectInstruction Message shown before PSP redirect (e.g. iDEAL, Bancontact).
+ *                       Payer-facing — use a Custom Label reference (labels.<name>) to
+ *                       keep it translatable. Omit when there is no redirect.
  *
  * PARAMETER FIELDS  (each entry in the parameters array)
  *
@@ -77,6 +86,8 @@
  *   data_type         "String", "Enum", "Boolean", or "Number".
  *   description       Human-readable explanation of the parameter.
  */
+import {labels} from './paymentFormLabels';
+
 export const PAYMENT_METHOD_CONFIG = [
     {
         paymentProcessor: 'PaymentHub-Stripe',
@@ -87,8 +98,8 @@ export const PAYMENT_METHOD_CONFIG = [
         isDefaultOneTime: true,
         isDefaultRecurring: false,
         supportsRecurring: true,
-        initialPaymentOnRecurring: 'optional',
-        displayLabel: 'Credit Card',
+        recurringRequiresInitialPayment: false,
+        displayLabel: labels.ec_label_method_credit_card,
         parameters: [
             {
                 name: 'locale',
@@ -101,7 +112,7 @@ export const PAYMENT_METHOD_CONFIG = [
                 name: 'description',
                 value: '',
                 visibleToCustomer: true,
-                displayLabel: "Description of the payment for the payer's bank",
+                displayLabel: labels.ec_label_payment_description,
                 required: false,
                 data_type: 'String',
                 description: "Description of the payment for the payer's bank."
@@ -117,8 +128,8 @@ export const PAYMENT_METHOD_CONFIG = [
         isDefaultOneTime: false,
         isDefaultRecurring: false,
         supportsRecurring: false,
-        initialPaymentOnRecurring: 'unsupported',
+        recurringRequiresInitialPayment: false,
         displayLabel: 'iDEAL',
-        redirectInstruction: 'You will be redirected to your bank to complete the payment.'
+        redirectInstruction: labels.ec_label_redirect_instruction
     }
 ];

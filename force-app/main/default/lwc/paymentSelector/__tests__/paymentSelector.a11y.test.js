@@ -14,7 +14,6 @@ const MOCK_CONFIG = [
         enabledRecurring: true,
         isDefaultOneTime: true,
         isDefaultRecurring: false,
-        supportsRecurring: true,
         displayLabel: 'Credit Card'
     },
     {
@@ -25,7 +24,6 @@ const MOCK_CONFIG = [
         enabledRecurring: false,
         isDefaultOneTime: false,
         isDefaultRecurring: false,
-        supportsRecurring: false,
         displayLabel: 'iDEAL',
         redirectInstruction: 'You will be redirected to your bank.'
     }

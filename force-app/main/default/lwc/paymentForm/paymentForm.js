@@ -67,21 +67,9 @@ export default class PaymentForm extends LightningElement {
         return todayISODate();
     }
 
-    // Config entry for the selected method, matched by processor + method.
-    get selectedMethodConfig() {
-        const selected = this.selectedPaymentMethod;
-        if (!selected) {
-            return null;
-        }
-        return PAYMENT_METHOD_CONFIG.find(
-            entry => entry.paymentProcessor === selected.processor && entry.paymentMethod === selected.name
-        ) ?? null;
-    }
-
-    // Add an initial OneTime payment only when the method requires it
     get includeInitialPayment() {
         return this.isRecurring
-            && this.selectedMethodConfig?.initialPaymentOnRecurring === 'required';
+            && this.selectedPaymentMethod?.recurringRequiresInitialPayment === true;
     }
 
     get availableMethods() {

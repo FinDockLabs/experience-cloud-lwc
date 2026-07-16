@@ -124,4 +124,30 @@
         <shortDescription>Section header above the payment method selector</shortDescription>
         <value>Select a payment method</value>
     </labels>
+    <!-- Payment Form — parameter labels -->
+    <labels>
+        <fullName>ec_label_payment_description</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Payment Description label</shortDescription>
+        <value>Payment Description</value>
+    </labels>
+    <!-- Payment Form — payment method labels -->
+    <labels>
+        <fullName>ec_label_method_credit_card</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Credit Card payment method label</shortDescription>
+        <value>Credit Card</value>
+    </labels>
+    <labels>
+        <fullName>ec_label_redirect_instruction</fullName>
+        <categories>Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Message shown before a payer is redirected to their bank/PSP</shortDescription>
+        <value>You will be redirected to your bank to complete the payment.</value>
+    </labels>
 </CustomLabels>

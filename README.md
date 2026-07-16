@@ -62,7 +62,7 @@ Example — embedding the standalone selector in a custom LWC:
 
 ## Payment Method Configuration
 
-Payment methods are defined statically in `paymentMethodConfiguration.js` — no runtime Apex call to `GET /PaymentMethods` is needed. Edit this file to match the payment methods and processors active in your org.
+Which methods appear, and how they're configured, is defined statically in `paymentMethodConfiguration.js` — edit this file to match the payment methods and processors active in your org.
 
 ### Generating the config from your org
 
@@ -96,27 +96,23 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 | `paymentMethod` | Name of the payment method. Maps to `PaymentMethod.Name` in the PaymentIntent. Source: `PaymentMethods[].Name` from `GET /PaymentMethods`. |
 | `target` | Merchant account name. Maps to `PaymentMethod.Target`. Find it in FinDock Setup → Processors & Methods → Accounts tab. Not returned by the API — must be filled in manually. Optional: leave empty to use the processor's default account, but the processor must have at least one account configured. |
 | `enabledOneTime` | Show this method for one-time payments. |
-| `enabledRecurring` | Show this method for recurring payments. Must be `false` when `supportsRecurring` is `false`. |
+| `enabledRecurring` | Show this method for recurring payments. Enabling this for a method whose processor doesn't actually support recurring has no effect — see the guard note below. |
 | `isDefaultOneTime` | Pre-select this method for one-time payments. Exactly one entry should be `true`. |
 | `isDefaultRecurring` | Pre-select this method for recurring payments. Exactly one entry where `enabledRecurring` is `true` should be `true`. |
-| `supportsRecurring` | Whether the processor supports recurring payments for this method. Source: `SupportsRecurring` from `GET /PaymentMethods`. Defaults to `enabledRecurring` when omitted. |
-| `initialPaymentOnRecurring` | The method's policy for carrying an initial (first) payment on a recurring payment. One of `'required'`, `'optional'`, `'unsupported'`, `'no'`. Source: `InitialPaymentOnRecurring` from `GET /PaymentMethods`. Defaults to `'unsupported'` when omitted. The form adds an initial `OneTime` payment only for `'required'` methods. See below. |
-| `displayLabel` | Label shown to the payer. Defaults to `paymentMethod` when omitted. |
-| `redirectInstruction` | Message shown before PSP redirect (e.g. for iDEAL, Bancontact). Omit when there is no redirect. |
-| `parameters` | Array of additional processor parameters (e.g. `locale`, `description`). `null` or omit when none. Each entry: `name`, `value`, `visibleToCustomer`, `displayLabel`, `required`, `data_type`, `description`. |
-
-Note that `supportsRecurring` is different from `enabledRecurring`: the former indicates the processor's technical capability, the latter determines if the method is available to the payer. The managed `cpm-payment-method-selector` filters methods on the Recurring tab with `supportsRecurring && enabledRecurring`, so it acts as a runtime guard — if `enabledRecurring` is mistakenly set `true` on a method that doesn't actually support recurring, the method still won't appear on the recurring tab. Keep both fields consistent per the constraint above rather than relying on only one.
+| `displayLabel` | Label shown to the payer. A plain string, or a Custom Label reference (`labels.<name>`) so the name follows the site language. Defaults to `paymentMethod` (the API method name) when omitted — the smart default. See [Localization](#localization). |
+| `redirectInstruction` | Message shown before PSP redirect (e.g. for iDEAL, Bancontact). Payer-facing — use a Custom Label reference (`labels.<name>`) to keep it translatable. Omit when there is no redirect. |
+| `parameters` | Array of additional processor parameters (e.g. `locale`, `description`). `null` or omit when none. Each entry: `name`, `value`, `visibleToCustomer`, `displayLabel`, `required`, `description`. |
 
 ### Recurring with an initial payment
 
-Some methods take a first payment up front when a recurring payment is set up. `paymentForm` adds an initial `OneTime` block **only when the method's `initialPaymentOnRecurring` is `required`** (the first payment is then charged immediately); `optional` / `unsupported` methods set up the mandate only.
+Some methods take a first payment up front when a recurring payment is set up. `paymentForm` adds an initial `OneTime` block **only when the method's `recurringRequiresInitialPayment` is `true`** (the first payment is then charged immediately); other methods set up the mandate only. This flag is sourced live from the org, so it always matches the processor's actual behavior.
 
 See [Initial payments for recurring payments](https://docs.findock.com/api/initial-payments-for-recurring-payments) for the full behavior and per-processor support.
 
 ### Validation and empty states
 
 - **Invalid config** — if `PAYMENT_METHOD_CONFIG` is not an array, is empty, or an entry is missing `paymentMethod` / `paymentProcessor`, the form shows an error banner and hides the payment UI (no selector, no Pay Button) so a broken config can't be submitted.
-- **No method for the selected frequency** — if the config is valid but no method is enabled for the admin-selected frequency (e.g. `defaultFrequency` is `Monthly` but every method is one-time only), the form shows a "no payment methods available" banner in place of the selector.
+- **No method for the selected frequency** — if the config is valid but no method is enabled for the selected frequency (e.g. `defaultFrequency` is `Monthly` but every method is one-time only), the form shows a "no payment methods available" banner in place of the selector.
 - **Runtime failures** — a well-formed config that references a method/processor/target not active in the org isn't caught up front; the PaymentIntent fails at runtime and the message is shown in the payment error banner. Regenerate the config (`npm run generate:config`) when the org's methods change.
 
 ### Flat parameter fields
@@ -126,10 +122,36 @@ See [Initial payments for recurring payments](https://docs.findock.com/api/initi
 | `name` | Parameter key (maps to `PaymentMethod.Parameters[name]`). Source: `Parameters[].Name` from `GET /PaymentMethods` |
 | `value` | Value sent to the processor. Leave empty for payer-filled fields |
 | `visibleToCustomer` | `true` → render as an input for the payer; `false` → send silently (default) |
-| `displayLabel` | Label shown to the payer when `visibleToCustomer` is `true`. Defaults to `name` |
+| `displayLabel` | Label shown to the payer when `visibleToCustomer` is `true`. A plain string, or a Custom Label reference (`labels.<name>`) for translation. Defaults to `name` |
 | `required` | Indicates if the processor requires this parameter |
-| `data_type` | `String`, `Enum`, `Boolean`, or `Number` |
 | `description` | Explanation of the parameter (for internal use and guidance) |
+
+## Localization
+
+The components are built to run on a multilingual Experience Cloud (LWR) site — one site with several languages enabled, not a page per language. Guests pick a language with the standard [Language Selector](https://help.salesforce.com/s/articleView?id=sf.rss_language_picker.htm) (the page reloads translated); authenticated users get their profile language. Don't build a language switcher into the form — rely on the standard component.
+
+**All payer-facing text is a Custom Label.** Every string our components render comes from a Custom Label in the `Experience Cloud` category (see `force-app/main/default/labels/CustomLabels.labels-meta.xml` and the `paymentFormLabels.js` registry). This includes the strings you set in `paymentMethodConfiguration.js`:
+
+- **Payment method names** (`displayLabel`) and **redirect messages** (`redirectInstruction`) — reference a Custom Label so they follow the site language:
+
+  ```js
+  import {labels} from './paymentFormLabels';
+  // ...
+  displayLabel: labels.ec_label_method_credit_card,
+  redirectInstruction: labels.ec_label_redirect_instruction,
+  ```
+
+  Omit a method's `displayLabel` to fall back to the API method name (the **smart default**). Visible parameter `displayLabel`s work the same way, falling back to the parameter `name`.
+
+**Translating / overriding the text** (done in your own org, per language):
+
+- **Packaged labels** — in Setup → Custom Labels, open a label and add a *Local Translations/Overrides* entry per language. This also overrides the English source. Overrides are not updated when we change the English source in a release, so keep a translation-management process.
+- **Your Flow screens** and **picklist values** — Setup → Translation Workbench → Translate (Setup Component = *Flow*). Note: STF file import rejects Flow components, so flows must be translated through the Translate UI.
+- **Experience Builder content** (titles, rich text) — per-language values in the component property editor, or site export/import.
+
+Translation Workbench must be enabled and languages added before installing, and LWR requires a **site republish** after language configuration changes. Untranslated elements fall back to the default (English) label.
+
+**Numbers and dates.** The amount is formatted with `Intl.NumberFormat` against `@salesforce/i18n/locale` (the active locale), so grouping/decimal separators follow the payer's language. `Recurring.StartDate` is sent to the API as an ISO date (`yyyy-mm-dd`) and is not displayed, so it needs no locale formatting. On LWR the timezone follows the browser.
 
 ## How it works
 
@@ -137,7 +159,7 @@ See [Initial payments for recurring payments](https://docs.findock.com/api/initi
 
 The Pay Button is disabled until all required fields are filled and a payment method is selected.
 
-`c-payment-selector` wraps the managed `cpm-payment-method-selector` component. It accepts the simplified flat config from `paymentMethodConfiguration.js`, enriches it into the format the managed component expects (mapping `paymentMethod` → `name`, `paymentProcessor` → `processor`, generating the `key`, etc.), and re-fires the `paymentmethodchanged` event with `bubbles: true, composed: true` so it propagates through shadow DOM.
+`c-payment-selector` wraps the managed `cpm-payment-method-selector` component. It accepts the simplified flat config from `paymentMethodConfiguration.js`, enriches it into the format the managed component expects (mapping `paymentMethod` → `name`, `paymentProcessor` → `processor`, generating the `key`), and re-fires the `paymentmethodchanged` event with `bubbles: true, composed: true` so it propagates through shadow DOM.
 
 To add pre- or post-payment Apex logic, or to change the PaymentIntent shape beyond what the component supports, fork `paymentForm` or build a custom LWC that embeds `c-payment-selector` and `cpm-pay-button` directly.
 
