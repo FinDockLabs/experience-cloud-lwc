@@ -1,7 +1,5 @@
 import { createElement } from 'lwc';
 import PaymentSelector from 'c/paymentSelector';
-import getPaymentMethods from '@salesforce/apex/PaymentMethodSourceController.getPaymentMethods';
-
 const MOCK_CONFIG = [
     {
         paymentProcessor: 'PaymentHub-Stripe',
@@ -34,26 +32,6 @@ const MOCK_CONFIG = [
     }
 ];
 
-const MOCK_PAYMENT_METHODS = [
-    {
-        name: 'CreditCard',
-        processors: [
-            {
-                name: 'PaymentHub-Stripe',
-                supportsRecurring: true,
-                initialPaymentOnRecurring: 'optional',
-                parameters: [{ name: 'locale', required: false, dataType: 'String', description: '' }]
-            }
-        ]
-    },
-    {
-        name: 'Ideal',
-        processors: [
-            { name: 'PaymentHub-Stripe', supportsRecurring: false, initialPaymentOnRecurring: 'unsupported', parameters: [] }
-        ]
-    }
-];
-
 function createComponent(props = {}) {
     const element = createElement('c-payment-selector', { is: PaymentSelector });
     Object.assign(element, props);
@@ -61,15 +39,12 @@ function createComponent(props = {}) {
     return element;
 }
 
-async function emitPaymentMethods(paymentMethods) {
-    getPaymentMethods.emit(paymentMethods);
-    await Promise.resolve();
+function getSelector(element) {
+    return element.shadowRoot.querySelector('cpm-payment-method-selector');
 }
 
-// payment-method-config is an LWC property, not an HTML attribute — access via JS property
-function getParsedConfig(element) {
-    const selector = element.shadowRoot.querySelector('cpm-payment-method-selector');
-    const value = selector.paymentMethodConfig;
+function getForwardedConfig(element) {
+    const value = getSelector(element).paymentMethodConfig;
     return value ? JSON.parse(value) : null;
 }
 
@@ -80,215 +55,90 @@ afterEach(() => {
 });
 
 describe('paymentSelector', () => {
-    describe('config enrichment', () => {
-        it('passes enriched config as JSON string', () => {
+    describe('config forwarding', () => {
+        it('forwards the config as a JSON string', () => {
             const element = createComponent({ config: MOCK_CONFIG });
-            const parsed = getParsedConfig(element);
-            expect(parsed).toHaveLength(2);
+            expect(getForwardedConfig(element)).toHaveLength(2);
         });
 
-        it('builds key as processor-method with single dash', () => {
+        it('forwards the raw admin fields unchanged (no enrichment here)', () => {
             const element = createComponent({ config: MOCK_CONFIG });
-            const [first] = getParsedConfig(element);
-            expect(first.key).toBe('PaymentHub-Stripe-CreditCard');
-        });
-
-        it('maps target to both target and merchantAccount', () => {
-            const element = createComponent({ config: MOCK_CONFIG });
-            const [first] = getParsedConfig(element);
+            const [first] = getForwardedConfig(element);
+            expect(first.paymentProcessor).toBe('PaymentHub-Stripe');
+            expect(first.paymentMethod).toBe('CreditCard');
             expect(first.target).toBe('Stripe-Main-Account');
-            expect(first.merchantAccount).toBe('Stripe-Main-Account');
+            // The adapter does not derive key/name/processor — that is the managed selector's job.
+            expect(first.key).toBeUndefined();
+            expect(first.name).toBeUndefined();
+            expect(first.processor).toBeUndefined();
         });
 
-        it('falls back processorPrettyName and processorFriendlyName to paymentProcessor', () => {
+        it('accepts config already provided as a JSON string and passes it through verbatim', () => {
+            const json = JSON.stringify(MOCK_CONFIG);
+            const element = createComponent({ config: json });
+            expect(getSelector(element).paymentMethodConfig).toBe(json);
+        });
+
+        it('forwards an empty array as "[]" (not null) so the managed selector renders no methods', () => {
+            const element = createComponent({ config: [] });
+            expect(getSelector(element).paymentMethodConfig).toBe('[]');
+        });
+
+        it('stringifies a non-array config object as-is (adapter is format-agnostic)', () => {
+            const legacy = { oneTime: [], recurring: [] };
+            const element = createComponent({ config: legacy });
+            expect(JSON.parse(getSelector(element).paymentMethodConfig)).toEqual(legacy);
+        });
+
+        it('exposes the assigned config via its public getter', () => {
             const element = createComponent({ config: MOCK_CONFIG });
-            const [first] = getParsedConfig(element);
-            expect(first.processorPrettyName).toBe('PaymentHub-Stripe');
-            expect(first.processorFriendlyName).toBe('PaymentHub-Stripe');
+            expect(element.config).toEqual(MOCK_CONFIG);
         });
 
-        it('preserves custom processorPrettyName and processorFriendlyName when provided', () => {
-            const config = [{ ...MOCK_CONFIG[0], processorPrettyName: 'Stripe', processorFriendlyName: 'Stripe Payments' }];
-            const element = createComponent({ config });
-            const [first] = getParsedConfig(element);
-            expect(first.processorPrettyName).toBe('Stripe');
-            expect(first.processorFriendlyName).toBe('Stripe Payments');
-        });
-
-        it('passes a provided method displayLabel through unchanged', () => {
+        it('re-forwards the updated config when it changes after render', async () => {
             const element = createComponent({ config: MOCK_CONFIG });
-            const [first] = getParsedConfig(element);
-            expect(first.displayLabel).toBe('Credit Card');
-        });
+            expect(getForwardedConfig(element)).toHaveLength(2);
 
-        it('defaults method displayLabel to the paymentMethod name (smart default)', () => {
-            const config = [{ ...MOCK_CONFIG[0], displayLabel: undefined }];
-            const element = createComponent({ config });
-            const [first] = getParsedConfig(element);
-            expect(first.displayLabel).toBe('CreditCard');
-        });
+            element.config = [MOCK_CONFIG[0]];
+            await Promise.resolve();
 
-        it('always sets active to true', () => {
-            const element = createComponent({ config: MOCK_CONFIG });
-            getParsedConfig(element).forEach(m => expect(m.active).toBe(true));
-        });
-
-        it('defaults boolean flags to false when omitted', () => {
-            const config = [{ paymentMethod: 'CreditCard', paymentProcessor: 'TestProcessor', target: 'acc' }];
-            const element = createComponent({ config });
-            const [first] = getParsedConfig(element);
-            expect(first.enabledOneTime).toBe(false);
-            expect(first.enabledRecurring).toBe(false);
-            expect(first.isDefaultOneTime).toBe(false);
-            expect(first.isDefaultRecurring).toBe(false);
-        });
-
-        it('defaults redirectInstruction to empty string when omitted', () => {
-            const element = createComponent({ config: MOCK_CONFIG });
-            const [first] = getParsedConfig(element);
-            expect(first.redirectInstruction).toBe('');
-        });
-
-        it('preserves redirectInstruction when provided', () => {
-            const element = createComponent({ config: MOCK_CONFIG });
-            const [, second] = getParsedConfig(element);
-            expect(second.redirectInstruction).toBe('You will be redirected to your bank.');
-        });
-    });
-
-
-    describe("live payment method enrichment", () => {
-        it('falls back supportsRecurring to enabledRecurring before the live methods load', () => {
-            const element = createComponent({ config: MOCK_CONFIG });
-            const [first] = getParsedConfig(element);
-            expect(first.supportsRecurring).toBe(true);
-        });
-
-        it('defaults initialPaymentOnRecurring to unsupported before the live methods load', () => {
-            const element = createComponent({ config: MOCK_CONFIG });
-            const [first] = getParsedConfig(element);
-            expect(first.initialPaymentOnRecurring).toBe('unsupported');
-        });
-
-        it('uses supportsRecurring and initialPaymentOnRecurring from the live payment methods once loaded', async () => {
-            const element = createComponent({ config: MOCK_CONFIG });
-            await emitPaymentMethods(MOCK_PAYMENT_METHODS);
-            const [first] = getParsedConfig(element);
-            expect(first.supportsRecurring).toBe(true);
-            expect(first.initialPaymentOnRecurring).toBe('optional');
-        });
-
-        it('ignores an enabledRecurring mismatch once the live payment methods say the processor cannot recur', async () => {
-            const config = [{ ...MOCK_CONFIG[0], paymentMethod: 'Ideal', enabledRecurring: true }];
-            const element = createComponent({ config });
-            await emitPaymentMethods(MOCK_PAYMENT_METHODS);
-            const [first] = getParsedConfig(element);
-            expect(first.supportsRecurring).toBe(false);
-        });
-
-        it('re-enriches already-rendered config once the live payment methods resolve', async () => {
-            const element = createComponent({ config: MOCK_CONFIG });
-            expect(getParsedConfig(element)[0].initialPaymentOnRecurring).toBe('unsupported');
-            await emitPaymentMethods(MOCK_PAYMENT_METHODS);
-            expect(getParsedConfig(element)[0].initialPaymentOnRecurring).toBe('optional');
-        });
-    });
-
-    describe('parameter enrichment', () => {
-        it('defaults data_type to String before the live methods load', () => {
-            const element = createComponent({ config: MOCK_CONFIG });
-            const [first] = getParsedConfig(element);
-            expect(first.parameters[0].data_type).toBe('String');
-        });
-
-        it('uses data_type from the live payment methods once loaded', async () => {
-            const config = [{
-                ...MOCK_CONFIG[0],
-                parameters: [{ name: 'locale' }]
-            }];
-            const liveMethods = [{
-                name: 'CreditCard',
-                processors: [{
-                    name: 'PaymentHub-Stripe',
-                    supportsRecurring: true,
-                    initialPaymentOnRecurring: 'optional',
-                    parameters: [{ name: 'locale', dataType: 'Enum' }]
-                }]
-            }];
-            const element = createComponent({ config });
-            await emitPaymentMethods(liveMethods);
-            const [first] = getParsedConfig(element);
-            expect(first.parameters[0].data_type).toBe('Enum');
-        });
-
-        it('defaults visibleToCustomer to false', () => {
-            const config = [{ ...MOCK_CONFIG[0], parameters: [{ name: 'locale' }] }];
-            const element = createComponent({ config });
-            const [first] = getParsedConfig(element);
-            expect(first.parameters[0].visibleToCustomer).toBe(false);
-        });
-
-        it('defaults displayLabel to name', () => {
-            const config = [{ ...MOCK_CONFIG[0], parameters: [{ name: 'locale' }] }];
-            const element = createComponent({ config });
-            const [first] = getParsedConfig(element);
-            expect(first.parameters[0].displayLabel).toBe('locale');
-        });
-
-        it('defaults value to empty string', () => {
-            const config = [{ ...MOCK_CONFIG[0], parameters: [{ name: 'locale' }] }];
-            const element = createComponent({ config });
-            const [first] = getParsedConfig(element);
-            expect(first.parameters[0].value).toBe('');
-        });
-
-        it('handles methods with no parameters', () => {
-            const config = [{ ...MOCK_CONFIG[1] }];
-            const element = createComponent({ config });
-            const [first] = getParsedConfig(element);
-            expect(first.parameters).toEqual([]);
+            const forwarded = getForwardedConfig(element);
+            expect(forwarded).toHaveLength(1);
+            expect(forwarded[0].paymentMethod).toBe('CreditCard');
         });
     });
 
     describe('frequency normalization', () => {
         it('lowercases the frequency value', () => {
             const element = createComponent({ config: MOCK_CONFIG, frequency: 'Recurring' });
-            const selector = element.shadowRoot.querySelector('cpm-payment-method-selector');
-            expect(selector.frequency).toBe('recurring');
+            expect(getSelector(element).frequency).toBe('recurring');
         });
 
         it('defaults to onetime when frequency is not set', () => {
             const element = createComponent({ config: MOCK_CONFIG });
-            const selector = element.shadowRoot.querySelector('cpm-payment-method-selector');
-            expect(selector.frequency).toBe('onetime');
+            expect(getSelector(element).frequency).toBe('onetime');
+        });
+
+        it('defaults to onetime when frequency is explicitly null', () => {
+            const element = createComponent({ config: MOCK_CONFIG, frequency: null });
+            expect(getSelector(element).frequency).toBe('onetime');
+        });
+
+        it('leaves an already-lowercase frequency unchanged', () => {
+            const element = createComponent({ config: MOCK_CONFIG, frequency: 'recurring' });
+            expect(getSelector(element).frequency).toBe('recurring');
         });
     });
 
     describe('edge cases', () => {
-        it('passes null config when config is not set', () => {
+        it('forwards null config when config is not set', () => {
             const element = createComponent();
-            const selector = element.shadowRoot.querySelector('cpm-payment-method-selector');
-            expect(selector.paymentMethodConfig).toBeNull();
+            expect(getSelector(element).paymentMethodConfig).toBeNull();
         });
 
-        it('passes null config when config is an empty array', () => {
-            const element = createComponent({ config: [] });
-            const selector = element.shadowRoot.querySelector('cpm-payment-method-selector');
-            expect(selector.paymentMethodConfig).toBeNull();
-        });
-
-        it('accepts config as a JSON string', () => {
-            const element = createComponent({ config: JSON.stringify(MOCK_CONFIG) });
-            const parsed = getParsedConfig(element);
-            expect(parsed).toHaveLength(2);
-        });
-
-        it('passes null config when config is invalid JSON', () => {
-            jest.spyOn(console, 'error').mockImplementation(() => {});
-            const element = createComponent({ config: 'not-valid-json' });
-            const selector = element.shadowRoot.querySelector('cpm-payment-method-selector');
-            expect(selector.paymentMethodConfig).toBeNull();
-            jest.restoreAllMocks();
+        it('forwards the paymentGroupId through to the managed selector', () => {
+            const element = createComponent({ config: MOCK_CONFIG, paymentGroupId: 'pf-1' });
+            expect(getSelector(element).paymentGroupId).toBe('pf-1');
         });
     });
 
@@ -298,9 +148,9 @@ describe('paymentSelector', () => {
             const handler = jest.fn();
             element.addEventListener('paymentmethodchanged', handler);
 
-            element.shadowRoot.querySelector('cpm-payment-method-selector').dispatchEvent(
+            getSelector(element).dispatchEvent(
                 new CustomEvent('paymentmethodchanged', {
-                    detail: { name: 'CreditCard', processor: 'PaymentHub-Stripe' },
+                    detail: { name: 'CreditCard', processor: 'PaymentHub-Stripe', recurringRequiresInitialPayment: true },
                     bubbles: true,
                     composed: true
                 })
@@ -309,8 +159,46 @@ describe('paymentSelector', () => {
             expect(handler).toHaveBeenCalledTimes(1);
             expect(handler.mock.calls[0][0].detail).toEqual({
                 name: 'CreditCard',
-                processor: 'PaymentHub-Stripe'
+                processor: 'PaymentHub-Stripe',
+                recurringRequiresInitialPayment: true
             });
+        });
+
+        it('re-emits a bubbling, composed event so it crosses the shadow boundary', () => {
+            const element = createComponent({ config: MOCK_CONFIG });
+            const handler = jest.fn();
+            element.addEventListener('paymentmethodchanged', handler);
+
+            getSelector(element).dispatchEvent(
+                new CustomEvent('paymentmethodchanged', {
+                    detail: { name: 'CreditCard', processor: 'PaymentHub-Stripe' },
+                    bubbles: true,
+                    composed: true
+                })
+            );
+
+            const reEmitted = handler.mock.calls[0][0];
+            expect(reEmitted.bubbles).toBe(true);
+            expect(reEmitted.composed).toBe(true);
+        });
+
+        it('does not double-dispatch: the original child event is stopped and only the re-emitted one bubbles up', () => {
+            const element = createComponent({ config: MOCK_CONFIG });
+            const ancestorHandler = jest.fn();
+            // Listen on an ancestor: without stopPropagation the child's own composed event would
+            // also reach here, producing two calls.
+            document.body.addEventListener('paymentmethodchanged', ancestorHandler);
+
+            getSelector(element).dispatchEvent(
+                new CustomEvent('paymentmethodchanged', {
+                    detail: { name: 'CreditCard', processor: 'PaymentHub-Stripe' },
+                    bubbles: true,
+                    composed: true
+                })
+            );
+
+            expect(ancestorHandler).toHaveBeenCalledTimes(1);
+            document.body.removeEventListener('paymentmethodchanged', ancestorHandler);
         });
     });
 });
