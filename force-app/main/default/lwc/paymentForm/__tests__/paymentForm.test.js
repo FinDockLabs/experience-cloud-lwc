@@ -21,7 +21,7 @@ function setField(element, field, value) {
     );
 }
 
-function selectMethod(element, { name, processor, target = 'My Stripe Test Account', recurringRequiresInitialPayment }) {
+function selectMethod(element, { name, processor, target = 'Stripe-Main', recurringRequiresInitialPayment }) {
     element.shadowRoot.querySelector('c-payment-selector').dispatchEvent(
         new CustomEvent('paymentmethodchanged', {
             detail: { name, processor, target, recurringRequiresInitialPayment },
