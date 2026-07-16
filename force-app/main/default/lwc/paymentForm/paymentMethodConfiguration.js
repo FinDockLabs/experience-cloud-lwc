@@ -57,12 +57,15 @@
  *                       Not a duplicate of enabledRecurring: the managed selector filters
  *                       recurring-tab methods with `supportsRecurring && enabledRecurring`,
  *                       so this guards against enabledRecurring being set true by mistake.
- *   initialPaymentOnRecurring
- *                       Method's policy for taking a first payment up front on a recurring
- *                       payment: "required", "optional", "unsupported"/"no".
- *                       Source: Processors[].InitialPaymentOnRecurring. The form adds an initial
- *                       OneTime payment only for "required" methods (the Payment API rejects a
- *                       recurring payment without it); other methods set up the mandate only.
+ *   recurringRequiresInitialPayment
+ *                       Whether this method requires a first payment up front when a recurring
+ *                       payment is set up. Source: the org derives it from
+ *                       Processors[].InitialPaymentOnRecurring (true only when it is "required";
+ *                       "optional"/"unsupported" are false). The form adds an initial OneTime
+ *                       payment only when this is true (the Payment API rejects such a recurring
+ *                       payment without it); otherwise the method sets up the mandate only.
+ *                       Overridden at runtime by the live org value, so this static value is only
+ *                       a fallback.
  *   displayLabel        Label shown to the payer. A plain string, or a Custom Label
  *                       reference (labels.<name>) so the name follows the site language.
  *                       Omit to fall back to paymentMethod (the API method name) — the
@@ -95,7 +98,7 @@ export const PAYMENT_METHOD_CONFIG = [
         isDefaultOneTime: true,
         isDefaultRecurring: false,
         supportsRecurring: true,
-        initialPaymentOnRecurring: 'optional',
+        recurringRequiresInitialPayment: false,
         displayLabel: labels.ec_label_method_credit_card,
         parameters: [
             {
@@ -125,7 +128,7 @@ export const PAYMENT_METHOD_CONFIG = [
         isDefaultOneTime: false,
         isDefaultRecurring: false,
         supportsRecurring: false,
-        initialPaymentOnRecurring: 'unsupported',
+        recurringRequiresInitialPayment: false,
         displayLabel: 'iDEAL',
         redirectInstruction: labels.ec_label_redirect_instruction
     }

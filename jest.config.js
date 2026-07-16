@@ -9,8 +9,7 @@ module.exports = {
         '^cpm/payButton$': '<rootDir>/jest-mocks/cpm/payButton/payButton',
         '^cpm/paymentMethodSelector$': '<rootDir>/jest-mocks/cpm/paymentMethodSelector/paymentMethodSelector',
         '^cpm/paymentFlowChannel$': '<rootDir>/jest-mocks/cpm/paymentFlowChannel/paymentFlowChannel',
-        '^cpm/paymentMethodValidators$': '<rootDir>/jest-mocks/cpm/paymentMethodValidators/paymentMethodValidators',
-        '^@salesforce/apex/PaymentMethodSourceController\\.getPaymentMethods$': '<rootDir>/jest-mocks/apex/getPaymentMethods'
+        '^cpm/paymentMethodValidators$': '<rootDir>/jest-mocks/cpm/paymentMethodValidators/paymentMethodValidators'
     },
     setupFilesAfterEnv: [
         ...(jestConfig.setupFilesAfterEnv || []),

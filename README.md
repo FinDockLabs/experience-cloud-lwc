@@ -105,7 +105,7 @@ The script calls `GET /PaymentMethods` via anonymous Apex, formats the response 
 
 ### Recurring with an initial payment
 
-Some methods take a first payment up front when a recurring payment is set up. `paymentForm` adds an initial `OneTime` block **only when the method's `initialPaymentOnRecurring` is `required`** (the first payment is then charged immediately); `optional` / `unsupported` methods set up the mandate only.
+Some methods take a first payment up front when a recurring payment is set up. `paymentForm` adds an initial `OneTime` block **only when the method's `recurringRequiresInitialPayment` is `true`** (the first payment is then charged immediately); other methods set up the mandate only. This flag is sourced live from the org, so it always matches the processor's actual behavior.
 
 See [Initial payments for recurring payments](https://docs.findock.com/api/initial-payments-for-recurring-payments) for the full behavior and per-processor support.
 

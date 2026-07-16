@@ -4,21 +4,9 @@ import { publish } from 'lightning/messageService';
 import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
 import { PAYMENT_FLOW_MESSAGE_TYPES } from 'cpm/paymentFlowChannel';
 import { PAYMENT_METHOD_CONFIG } from '../paymentMethodConfiguration';
-import getPaymentMethods from '@salesforce/apex/PaymentMethodSourceController.getPaymentMethods';
 import EC_LABEL_FIRST_NAME from '@salesforce/label/c.ec_label_first_name';
 import EC_LABEL_LAST_NAME from '@salesforce/label/c.ec_label_last_name';
 import EC_LABEL_EMAIL_ADDRESS from '@salesforce/label/c.ec_label_email_address';
-import EC_ERROR_LIVE_PAYMENT_METHODS_UNAVAILABLE from '@salesforce/label/c.ec_error_live_payment_methods_unavailable';
-
-async function emitPaymentMethods(paymentMethods) {
-    getPaymentMethods.emit(paymentMethods);
-    await Promise.resolve();
-}
-
-async function emitPaymentMethodsError() {
-    getPaymentMethods.error();
-    await Promise.resolve();
-}
 
 function createComponent(props = {}) {
     const element = createElement('c-payment-form', { is: PaymentForm });
@@ -33,10 +21,10 @@ function setField(element, field, value) {
     );
 }
 
-function selectMethod(element, { name, processor, target = 'My Stripe Test Account' }) {
+function selectMethod(element, { name, processor, target = 'My Stripe Test Account', recurringRequiresInitialPayment }) {
     element.shadowRoot.querySelector('c-payment-selector').dispatchEvent(
         new CustomEvent('paymentmethodchanged', {
-            detail: { name, processor, target },
+            detail: { name, processor, target, recurringRequiresInitialPayment },
             bubbles: true,
             composed: true
         })
@@ -100,46 +88,18 @@ describe('paymentForm', () => {
             expect(element.shadowRoot.querySelector('cpm-pay-button')).toBeNull();
         });
 
-        it('drops a method from the recurring tab once the live payment methods say its processor cannot recur, even if enabledRecurring is true', async () => {
+        it('hides the recurring tab when the static config says the processor cannot recur, even if enabledRecurring is true', () => {
             // A misconfigured entry: an admin enabled recurring for a method whose processor
-            // doesn't actually support it. The live payment methods are the guard against this.
+            // does not support it. The static supportsRecurring flag guards the availability banner;
+            // the managed selector performs the authoritative live filtering.
             PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, {
                 paymentProcessor: 'PaymentHub-Stripe', paymentMethod: 'Ideal',
-                enabledOneTime: true, enabledRecurring: true
+                enabledOneTime: true, enabledRecurring: true, supportsRecurring: false
             });
             const element = createComponent({ amount: 25, defaultFrequency: 'Monthly' });
-            await emitPaymentMethods([
-                { name: 'Ideal', processors: [{ name: 'PaymentHub-Stripe', supportsRecurring: false, initialPaymentOnRecurring: 'unsupported', parameters: [] }] }
-            ]);
             const banner = element.shadowRoot.querySelector('.payment-error-banner');
             expect(banner).not.toBeNull();
             expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
-        });
-    });
-
-    describe('live payment methods error handling', () => {
-        it('shows a non-blocking banner when the live payment method lookup fails', async () => {
-            const element = createComponent({ amount: 25 });
-            await emitPaymentMethodsError();
-            const banner = element.shadowRoot.querySelector('.payment-error-banner');
-            expect(banner).not.toBeNull();
-            expect(banner.textContent).toContain(EC_ERROR_LIVE_PAYMENT_METHODS_UNAVAILABLE);
-        });
-
-        it('still renders the selector and pay button (falls back to config defaults)', async () => {
-            const element = createComponent({ amount: 25 });
-            await emitPaymentMethodsError();
-            expect(element.shadowRoot.querySelector('c-payment-selector')).not.toBeNull();
-            expect(element.shadowRoot.querySelector('cpm-pay-button')).not.toBeNull();
-        });
-
-        it('clears the banner once the live payment methods load successfully afterwards', async () => {
-            const element = createComponent({ amount: 25 });
-            await emitPaymentMethodsError();
-            expect(element.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
-
-            await emitPaymentMethods([]);
-            expect(element.shadowRoot.querySelector('.payment-error-banner')).toBeNull();
         });
     });
 
@@ -189,7 +149,7 @@ describe('paymentForm', () => {
             // Add a recurring-enabled method so the selector/pay button render on the recurring tab.
             PAYMENT_METHOD_CONFIG.push({
                 paymentProcessor: 'Test-Processor', paymentMethod: 'RecurringCard',
-                enabledRecurring: true
+                enabledRecurring: true, supportsRecurring: true
             });
             try {
                 const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
@@ -206,30 +166,25 @@ describe('paymentForm', () => {
             }
         });
 
-        // A OneTime block is added for recurring only when the method's initialPaymentOnRecurring is 'required'
+        // A OneTime block is added for recurring only when the selected method's
+        // recurringRequiresInitialPayment (from the selector's change event) is true.
         describe('initial payment on recurring', () => {
-            const LIVE_METHODS = [
-                { name: 'RequiredCard', processors: [{ name: 'Test', supportsRecurring: true, initialPaymentOnRecurring: 'required', parameters: [] }] },
-                { name: 'OptionalCard', processors: [{ name: 'Test', supportsRecurring: true, initialPaymentOnRecurring: 'optional', parameters: [] }] },
-                { name: 'UnsupportedCard', processors: [{ name: 'Test', supportsRecurring: true, initialPaymentOnRecurring: 'unsupported', parameters: [] }] }
-            ];
             let original;
             beforeEach(() => {
                 original = [...PAYMENT_METHOD_CONFIG];
                 PAYMENT_METHOD_CONFIG.push(
-                    { paymentProcessor: 'Test', paymentMethod: 'RequiredCard', enabledOneTime: true, enabledRecurring: true },
-                    { paymentProcessor: 'Test', paymentMethod: 'OptionalCard', enabledOneTime: true, enabledRecurring: true },
-                    { paymentProcessor: 'Test', paymentMethod: 'UnsupportedCard', enabledOneTime: true, enabledRecurring: true }
+                    { paymentProcessor: 'Test', paymentMethod: 'RequiresInitialCard', enabledOneTime: true, enabledRecurring: true, supportsRecurring: true },
+                    { paymentProcessor: 'Test', paymentMethod: 'MandateOnlyCard', enabledOneTime: true, enabledRecurring: true, supportsRecurring: true }
                 );
             });
             afterEach(() => {
                 PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, ...original);
             });
 
-            it('adds a OneTime initial payment for a "required" method', async () => {
+            it('adds a OneTime initial payment when recurringRequiresInitialPayment is true', async () => {
                 const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
-                await emitPaymentMethods(LIVE_METHODS);
-                selectMethod(element, { name: 'RequiredCard', processor: 'Test' });
+                await Promise.resolve();
+                selectMethod(element, { name: 'RequiresInitialCard', processor: 'Test', recurringRequiresInitialPayment: true });
                 await Promise.resolve();
                 const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
                 expect(intent.Recurring.Amount).toBe('15');
@@ -237,19 +192,22 @@ describe('paymentForm', () => {
                 expect(intent.OneTime).toEqual({ Amount: '15', CurrencyISOCode: 'EUR' });
             });
 
-            it('omits the OneTime block for an "optional" method (mandate only)', async () => {
+            it('omits the OneTime block when recurringRequiresInitialPayment is false (mandate only)', async () => {
                 const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
-                await emitPaymentMethods(LIVE_METHODS);
-                selectMethod(element, { name: 'OptionalCard', processor: 'Test' });
+                await Promise.resolve();
+                selectMethod(element, { name: 'MandateOnlyCard', processor: 'Test', recurringRequiresInitialPayment: false });
                 await Promise.resolve();
                 const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
                 expect(intent.OneTime).toBeUndefined();
             });
 
-            it('omits the OneTime block for an "unsupported" method', async () => {
+            it('omits the OneTime block when the selector does not report recurringRequiresInitialPayment', async () => {
+                // Defensive: if the flag is absent (e.g. the live source was unavailable), the form
+                // must treat it as "not required" and set up the mandate only — never coerce a
+                // missing/loose value into adding an initial payment.
                 const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
-                await emitPaymentMethods(LIVE_METHODS);
-                selectMethod(element, { name: 'UnsupportedCard', processor: 'Test' });
+                await Promise.resolve();
+                selectMethod(element, { name: 'MandateOnlyCard', processor: 'Test' }); // recurringRequiresInitialPayment omitted
                 await Promise.resolve();
                 const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
                 expect(intent.OneTime).toBeUndefined();
@@ -257,8 +215,8 @@ describe('paymentForm', () => {
 
             it('does not add a OneTime block for a one-time payment (initial-payment logic is recurring-only)', async () => {
                 const element = createComponent({ amount: 15, defaultFrequency: 'One time' });
-                await emitPaymentMethods(LIVE_METHODS);
-                selectMethod(element, { name: 'RequiredCard', processor: 'Test' });
+                await Promise.resolve();
+                selectMethod(element, { name: 'RequiresInitialCard', processor: 'Test', recurringRequiresInitialPayment: true });
                 await Promise.resolve();
                 const intent = element.shadowRoot.querySelector('cpm-pay-button').paymentIntent;
                 expect(intent.OneTime).toEqual({ Amount: '15', CurrencyISOCode: 'EUR' });

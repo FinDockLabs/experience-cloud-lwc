@@ -2,7 +2,6 @@ import { api, wire, LightningElement, track } from "lwc";
 import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService';
 import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
 import LOCALE from '@salesforce/i18n/locale';
-import getPaymentMethods from '@salesforce/apex/PaymentMethodSourceController.getPaymentMethods';
 import { PAYMENT_FLOW_MESSAGE_TYPES, matchesGroup } from 'cpm/paymentFlowChannel';
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
@@ -44,27 +43,11 @@ export default class PaymentForm extends LightningElement {
     @track paymentIntent = {};
     @track paymentError = null;
     @track configError = null;
-    @track liveMethodsError = null;
 
     labels = labels;
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
     _instanceId = ++_nextInstanceId;
     _subscription = null;
-    _liveMethodsIndex = null;
-
-    get enrichedMethodConfig() {
-        if (!Array.isArray(PAYMENT_METHOD_CONFIG)) {
-            return [];
-        }
-        return PAYMENT_METHOD_CONFIG.map(m => {
-            const live = this._liveMethodsIndex?.get(`${m.paymentMethod}::${m.paymentProcessor}`);
-            return {
-                ...m,
-                supportsRecurring: live?.supportsRecurring ?? m.enabledRecurring ?? false,
-                initialPaymentOnRecurring: live?.initialPaymentOnRecurring ?? 'unsupported'
-            };
-        });
-    }
 
     // Per-instance key so two forms on a page don't cross-react on the channel.
     get paymentGroupId() {
@@ -83,25 +66,16 @@ export default class PaymentForm extends LightningElement {
         return todayISODate();
     }
 
-    // Config entry for the selected method, matched by processor + method.
-    get selectedMethodConfig() {
-        const selected = this.selectedPaymentMethod;
-        if (!selected) {
-            return null;
-        }
-        return this.enrichedMethodConfig.find(
-            entry => entry.paymentProcessor === selected.processor && entry.paymentMethod === selected.name
-        ) ?? null;
-    }
-
-    // Add an initial OneTime payment only when the method requires it
     get includeInitialPayment() {
         return this.isRecurring
-            && this.selectedMethodConfig?.initialPaymentOnRecurring === 'required';
+            && this.selectedPaymentMethod?.recurringRequiresInitialPayment === true;
     }
 
     get availableMethods() {
-        return this.enrichedMethodConfig.filter(m =>
+        if (!Array.isArray(PAYMENT_METHOD_CONFIG)) {
+            return [];
+        }
+        return PAYMENT_METHOD_CONFIG.filter(m =>
             this.isRecurring ? (m.supportsRecurring && m.enabledRecurring) : m.enabledOneTime
         );
     }
@@ -151,29 +125,8 @@ export default class PaymentForm extends LightningElement {
         this._subscription = null;
     }
 
-    @wire(getPaymentMethods)
-    wiredPaymentMethods({ data, error }) {
-        if (data) {
-            this._liveMethodsIndex = this._indexPaymentMethods(data);
-            this.liveMethodsError = null;
-        } else if (error) {
-            this._liveMethodsIndex = null;
-            this.liveMethodsError = this.labels.ec_error_live_payment_methods_unavailable;
-        }
-    }
-
     @wire(MessageContext)
     messageContext;
-
-    _indexPaymentMethods(methods) {
-        const index = new Map();
-        for (const method of methods ?? []) {
-            for (const proc of method.processors ?? []) {
-                index.set(`${method.name}::${proc.name}`, proc);
-            }
-        }
-        return index;
-    }
 
     subscribeToPaymentFlow() {
         this._subscription = subscribe(
