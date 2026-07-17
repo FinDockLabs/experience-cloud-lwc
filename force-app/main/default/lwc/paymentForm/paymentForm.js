@@ -76,8 +76,9 @@ export default class PaymentForm extends LightningElement {
         if (!Array.isArray(PAYMENT_METHOD_CONFIG)) {
             return [];
         }
+
         return PAYMENT_METHOD_CONFIG.filter(m =>
-            this.isRecurring ? (m.supportsRecurring && m.enabledRecurring) : m.enabledOneTime
+            this.isRecurring ? m.enabledRecurring : m.enabledOneTime
         );
     }
 

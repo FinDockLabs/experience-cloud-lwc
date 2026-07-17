@@ -87,20 +87,6 @@ describe('paymentForm', () => {
             expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
             expect(element.shadowRoot.querySelector('cpm-pay-button')).toBeNull();
         });
-
-        it('hides the recurring tab when the static config says the processor cannot recur, even if enabledRecurring is true', () => {
-            // A misconfigured entry: an admin enabled recurring for a method whose processor
-            // does not support it. The static supportsRecurring flag guards the availability banner;
-            // the managed selector performs the authoritative live filtering.
-            PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, {
-                paymentProcessor: 'PaymentHub-Stripe', paymentMethod: 'Ideal',
-                enabledOneTime: true, enabledRecurring: true, supportsRecurring: false
-            });
-            const element = createComponent({ amount: 25, defaultFrequency: 'Monthly' });
-            const banner = element.shadowRoot.querySelector('.payment-error-banner');
-            expect(banner).not.toBeNull();
-            expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
-        });
     });
 
     describe('admin-configured amount and frequency (read-only)', () => {
@@ -149,7 +135,7 @@ describe('paymentForm', () => {
             // Add a recurring-enabled method so the selector/pay button render on the recurring tab.
             PAYMENT_METHOD_CONFIG.push({
                 paymentProcessor: 'Test-Processor', paymentMethod: 'RecurringCard',
-                enabledRecurring: true, supportsRecurring: true
+                enabledRecurring: true
             });
             try {
                 const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
@@ -173,8 +159,8 @@ describe('paymentForm', () => {
             beforeEach(() => {
                 original = [...PAYMENT_METHOD_CONFIG];
                 PAYMENT_METHOD_CONFIG.push(
-                    { paymentProcessor: 'Test', paymentMethod: 'RequiresInitialCard', enabledOneTime: true, enabledRecurring: true, supportsRecurring: true },
-                    { paymentProcessor: 'Test', paymentMethod: 'MandateOnlyCard', enabledOneTime: true, enabledRecurring: true, supportsRecurring: true }
+                    { paymentProcessor: 'Test', paymentMethod: 'RequiresInitialCard', enabledOneTime: true, enabledRecurring: true },
+                    { paymentProcessor: 'Test', paymentMethod: 'MandateOnlyCard', enabledOneTime: true, enabledRecurring: true }
                 );
             });
             afterEach(() => {
