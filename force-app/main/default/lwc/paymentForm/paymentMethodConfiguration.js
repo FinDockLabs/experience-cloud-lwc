@@ -121,7 +121,7 @@ export const PAYMENT_METHOD_CONFIG = [
         enabledRecurring: false,
         isDefaultOneTime: false,
         isDefaultRecurring: false,
-        displayLabel: 'iDEAL',
+        displayLabel: 'iDEAL | Wero',
         redirectInstruction: labels.ec_label_redirect_instruction
     }
 ];
