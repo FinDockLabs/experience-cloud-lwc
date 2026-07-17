@@ -19,6 +19,17 @@
  * Developer Console → Execute Anonymous and copy from the FDPAYCONFIG: line in the log.
  *
  * ---
+ * RESOLVED LIVE BY THE MANAGED SELECTOR (intentionally NOT in this file)
+ *
+ * The managed payment selector enriches each raw entry at runtime from the org
+ * (GET /PaymentMethods), so you do not declare these here:
+ *   - whether the processor supports recurring for a method,
+ *   - whether a recurring setup requires an initial payment up front,
+ *   - each parameter's data type.
+ * The selector overlays these authoritative values when the form renders; you only
+ * declare the fields documented below.
+ *
+ * ---
  * FIELD REFERENCE
  *
  * PAYMENT INTENT FIELDS  (sent to POST /PaymentIntent as PaymentMethod.*)
@@ -48,24 +59,12 @@
  * SELECTOR UI FIELDS  (control which methods appear and which is pre-selected)
  *
  *   enabledOneTime      Show this method for one-time payments.
- *   enabledRecurring    Show this method for recurring payments.
- *                       Must be false when supportsRecurring is false.
+ *   enabledRecurring    Show this method for recurring payments. Only takes effect for
+ *                       methods whose processor actually supports recurring — the managed
+ *                       selector resolves that live from the org and filters accordingly,
+ *                       so a mistaken `true` here is ignored at runtime.
  *   isDefaultOneTime    Pre-select for one-time. Exactly one entry should be true.
  *   isDefaultRecurring  Pre-select for recurring. Exactly one enabledRecurring entry should be true.
- *   supportsRecurring   Whether the processor supports recurring for this method.
- *                       Source: PaymentMethods[].Processors[].SupportsRecurring.
- *                       Not a duplicate of enabledRecurring: the managed selector filters
- *                       recurring-tab methods with `supportsRecurring && enabledRecurring`,
- *                       so this guards against enabledRecurring being set true by mistake.
- *   recurringRequiresInitialPayment
- *                       Whether this method requires a first payment up front when a recurring
- *                       payment is set up. Source: the org derives it from
- *                       Processors[].InitialPaymentOnRecurring (true only when it is "required";
- *                       "optional"/"unsupported" are false). The form adds an initial OneTime
- *                       payment only when this is true (the Payment API rejects such a recurring
- *                       payment without it); otherwise the method sets up the mandate only.
- *                       Overridden at runtime by the live org value, so this static value is only
- *                       a fallback.
  *   displayLabel        Label shown to the payer. A plain string, or a Custom Label
  *                       reference (labels.<name>) so the name follows the site language.
  *                       Omit to fall back to paymentMethod (the API method name) — the
@@ -83,7 +82,6 @@
  *                     false — send silently (default).
  *   displayLabel      Label shown when visibleToCustomer is true. Defaults to name.
  *   required          Whether the processor requires this parameter.
- *   data_type         "String", "Enum", "Boolean", or "Number".
  *   description       Human-readable explanation of the parameter.
  */
 import {labels} from './paymentFormLabels';
@@ -97,15 +95,12 @@ export const PAYMENT_METHOD_CONFIG = [
         enabledRecurring: true,
         isDefaultOneTime: true,
         isDefaultRecurring: false,
-        supportsRecurring: true,
-        recurringRequiresInitialPayment: false,
         displayLabel: labels.ec_label_method_credit_card,
         parameters: [
             {
                 name: 'locale',
                 value: 'nl-NL',
                 visibleToCustomer: false,
-                data_type: 'String',
                 description: 'Expected input: language tags as outlined on https://www.oracle.com/java/technologies/javase/jdk13locales.html. Examples: nl-NL, en-US.'
             },
             {
@@ -114,7 +109,6 @@ export const PAYMENT_METHOD_CONFIG = [
                 visibleToCustomer: true,
                 displayLabel: labels.ec_label_payment_description,
                 required: false,
-                data_type: 'String',
                 description: "Description of the payment for the payer's bank."
             }
         ]
@@ -127,8 +121,6 @@ export const PAYMENT_METHOD_CONFIG = [
         enabledRecurring: false,
         isDefaultOneTime: false,
         isDefaultRecurring: false,
-        supportsRecurring: false,
-        recurringRequiresInitialPayment: false,
         displayLabel: 'iDEAL',
         redirectInstruction: labels.ec_label_redirect_instruction
     }
