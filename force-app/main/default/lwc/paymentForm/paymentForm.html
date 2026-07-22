@@ -2,7 +2,7 @@
     <div class="slds-card">
         <div class="slds-card__body slds-card__body_inner">
 
-            <template lwc:if={configError}>
+            <template lwc:if={isUnavailable}>
                 <div class="payment-error-banner" role="alert">
                     <lightning-icon icon-name="utility:error"
                                     variant="error"
@@ -10,7 +10,7 @@
                                     class="payment-error-banner__icon"
                                     aria-hidden="true">
                     </lightning-icon>
-                    <p class="payment-error-banner__message">{configError}</p>
+                    <p class="payment-error-banner__message">{labels.ec_error_unavailable}</p>
                 </div>
             </template>
             <template lwc:else>
@@ -51,29 +51,16 @@
                     </lightning-input>
                 </fieldset>
 
-                <template lwc:if={hasNoMethodsForFrequency}>
-                    <div class="payment-error-banner" role="alert">
-                        <lightning-icon icon-name="utility:error"
-                                        variant="error"
-                                        size="x-small"
-                                        class="payment-error-banner__icon"
-                                        aria-hidden="true">
-                        </lightning-icon>
-                        <p class="payment-error-banner__message">{labels.ec_error_no_methods_for_frequency}</p>
-                    </div>
-                </template>
-                <template lwc:else>
-                    <fieldset class="form-section slds-form slds-form_stacked">
-                        <legend class="section-header">{labels.ec_header_select_payment_method}</legend>
-                        <c-payment-selector
-                            config={paymentMethodConfig}
-                            frequency={frequency}
-                            payment-group-id={paymentGroupId}
-                            onpaymentmethodchanged={handlePaymentMethodChanged}>
-                        </c-payment-selector>
-                    </fieldset>
-                    <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} payment-group-id={paymentGroupId}></cpm-pay-button>
-                </template>
+                <fieldset class="form-section slds-form slds-form_stacked">
+                    <legend class="section-header">{labels.ec_header_select_payment_method}</legend>
+                    <c-payment-selector
+                        config={paymentMethodConfig}
+                        frequency={frequency}
+                        payment-group-id={paymentGroupId}
+                        onpaymentmethodchanged={handlePaymentMethodChanged}>
+                    </c-payment-selector>
+                </fieldset>
+                <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} payment-group-id={paymentGroupId}></cpm-pay-button>
             </template>
         </div>
     </div>

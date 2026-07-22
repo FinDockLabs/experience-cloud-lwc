@@ -43,7 +43,8 @@ export default class PaymentForm extends LightningElement {
     @track selectedPaymentMethod = null;
     @track paymentIntent = {};
     @track paymentError = null;
-    @track configError = null;
+    // Structural config validity (array present, entries have required fields). Set once on connect.
+    _configValid = true;
 
     labels = labels;
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
@@ -82,8 +83,8 @@ export default class PaymentForm extends LightningElement {
         );
     }
 
-    get hasNoMethodsForFrequency() {
-        return !this.configError && this.availableMethods.length === 0;
+    get isUnavailable() {
+        return !this._configValid || this.availableMethods.length === 0;
     }
 
     get formattedAmount() {
@@ -118,7 +119,7 @@ export default class PaymentForm extends LightningElement {
 
     connectedCallback() {
         this.subscribeToPaymentFlow();
-        this.configError = this._validateConfig(PAYMENT_METHOD_CONFIG);
+        this._checkConfiguration();
         this._updatePaymentIntentContext();
     }
 
@@ -138,21 +139,40 @@ export default class PaymentForm extends LightningElement {
         );
     }
 
-    _validateConfig(config) {
+    // Validate the shipped config and log any problems to the console for admins. Payers only ever
+    // see the generic ec_error_unavailable notice — no specifics are surfaced in the UI.
+    _checkConfiguration() {
+        const config = PAYMENT_METHOD_CONFIG;
+        const problems = [];
+
         if (!Array.isArray(config)) {
-            return this.labels.ec_error_config_invalid;
-        }
-        if (config.length === 0) {
-            return this.labels.ec_error_config_empty;
-        }
-        for (const entry of config) {
-            for (const field of ['paymentMethod', 'paymentProcessor']) {
-                if (!entry[field]) {
-                    return this.labels.ec_error_config_missing_field.replace('{0}', field);
+            problems.push('PAYMENT_METHOD_CONFIG must be an array — check paymentMethodConfiguration.js.');
+        } else if (config.length === 0) {
+            problems.push('No payment methods are configured in paymentMethodConfiguration.js.');
+        } else {
+            config.forEach((entry, i) => {
+                for (const field of ['paymentMethod', 'paymentProcessor']) {
+                    if (!entry[field]) {
+                        problems.push(`Payment method entry #${i} is missing required field "${field}".`);
+                    }
                 }
-            }
+            });
         }
-        return null;
+
+        this._configValid = problems.length === 0;
+
+        // A valid config with no method enabled for the active frequency is also "unavailable".
+        if (this._configValid && this.availableMethods.length === 0) {
+            problems.push(`No payment methods are enabled for the "${this.frequency}" payment frequency.`);
+        }
+
+        if (problems.length > 0) {
+            // eslint-disable-next-line no-console
+            console.error(
+                '[FinDock] Payment form unavailable due to configuration issue(s):\n- ' +
+                    problems.join('\n- ')
+            );
+        }
     }
 
     _updatePaymentIntentContext() {

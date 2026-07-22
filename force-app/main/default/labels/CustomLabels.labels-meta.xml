@@ -74,38 +74,14 @@
         <value>Monthly</value>
     </labels>
 
-    <!-- Payment Form — configuration errors -->
+    <!-- Payment Form — generic unavailable notice (single payer-facing error) -->
     <labels>
-        <fullName>ec_error_config_invalid</fullName>
+        <fullName>ec_error_unavailable</fullName>
         <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Error shown when paymentMethodConfiguration.js has invalid structure</shortDescription>
-        <value>Payment method configuration is invalid. Check the browser console for details.</value>
-    </labels>
-    <labels>
-        <fullName>ec_error_config_empty</fullName>
-        <categories>FinDock, Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Error shown when no payment methods are available after filtering</shortDescription>
-        <value>No payment methods are configured. Add at least one entry to paymentMethodConfiguration.js.</value>
-    </labels>
-    <labels>
-        <fullName>ec_error_config_missing_field</fullName>
-        <categories>FinDock, Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Error shown when a config entry is missing a required field</shortDescription>
-        <value>Payment method configuration entry is missing required field: {0}. Check paymentMethodConfiguration.js.</value>
-    </labels>
-    <labels>
-        <fullName>ec_error_no_methods_for_frequency</fullName>
-        <categories>FinDock, Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Shown when no payment method is available for the selected frequency</shortDescription>
-        <value>No payment methods are available for the selected payment frequency.</value>
+        <shortDescription>Generic notice shown to payers when the payment form is unavailable</shortDescription>
+        <value>This payment form is currently unavailable. Please try again later.</value>
     </labels>
     <labels>
         <fullName>ec_header_personal_details</fullName>

@@ -74,7 +74,7 @@ describe('paymentForm', () => {
             expect(element.shadowRoot.querySelector('cpm-pay-button')).toBeNull();
         });
 
-        it('shows a friendly banner (not the selector) when no method matches the frequency', () => {
+        it('shows the generic unavailable banner (not the selector) when no method matches the frequency', () => {
             // Only a one-time method remains, but the admin picked recurring.
             PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, {
                 paymentProcessor: 'PaymentHub-Stripe', paymentMethod: 'Ideal',
@@ -83,7 +83,7 @@ describe('paymentForm', () => {
             const element = createComponent({ amount: 25, defaultFrequency: 'Monthly' });
             const banner = element.shadowRoot.querySelector('.payment-error-banner');
             expect(banner).not.toBeNull();
-            expect(banner.textContent).toContain('No payment methods are available');
+            expect(banner.textContent).toContain('currently unavailable');
             expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
             expect(element.shadowRoot.querySelector('cpm-pay-button')).toBeNull();
         });

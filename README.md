@@ -111,9 +111,8 @@ See [Initial payments for recurring payments](https://docs.findock.com/api/initi
 
 ### Validation and empty states
 
-- **Invalid config** — if `PAYMENT_METHOD_CONFIG` is not an array, is empty, or an entry is missing `paymentMethod` / `paymentProcessor`, the form shows an error banner and hides the payment UI (no selector, no Pay Button) so a broken config can't be submitted.
-- **No method for the selected frequency** — if the config is valid but no method is enabled for the selected frequency (e.g. `defaultFrequency` is `Monthly` but every method is one-time only), the form shows a "no payment methods available" banner in place of the selector.
-- **Runtime failures** — a well-formed config that references a method/processor/target not active in the org isn't caught up front; the PaymentIntent fails at runtime and the message is shown in the payment error banner. Regenerate the config (`npm run generate:config`) when the org's methods change.
+- **Unavailable form** — if `PAYMENT_METHOD_CONFIG` is not an array, is empty, an entry is missing `paymentMethod` / `paymentProcessor`, or no method is enabled for the selected frequency (e.g. `defaultFrequency` is `Monthly` but every method is one-time only), the form hides the whole payment UI (no fields, no selector, no Pay Button) and shows a single generic notice (`ec_error_unavailable`) so a broken config can't be submitted. Payers never see the specific reason; the exact issue(s) are logged to the **browser console** (`console.error`) for admins/developers to diagnose.
+- **Runtime failures** — a well-formed config that references a method/processor/target not active in the org isn't caught up front; the PaymentIntent fails at runtime and the message is surfaced via the payment error channel. Regenerate the config (`npm run generate:config`) when the org's methods change.
 
 ### Flat parameter fields
 
