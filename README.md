@@ -130,18 +130,18 @@ See [Initial payments for recurring payments](https://docs.findock.com/api/initi
 
 The components are built to run on a multilingual Experience Cloud (LWR) site — one site with several languages enabled, not a page per language. Guests pick a language with the standard [Language Selector](https://help.salesforce.com/s/articleView?id=sf.rss_language_picker.htm) (the page reloads translated); authenticated users get their profile language. Don't build a language switcher into the form — rely on the standard component.
 
-**All payer-facing text is a Custom Label.** Every string our components render comes from a Custom Label in the `Experience Cloud` category (see `force-app/main/default/labels/CustomLabels.labels-meta.xml` and the `paymentFormLabels.js` registry). This includes the strings you set in `paymentMethodConfiguration.js`:
-
-- **Payment method names** (`displayLabel`) and **redirect messages** (`redirectInstruction`) — reference a Custom Label so they follow the site language:
+**Component text comes from Custom Labels.** The strings our components render come from Custom Labels in the `Experience Cloud` category (see `force-app/main/default/labels/CustomLabels.labels-meta.xml` and the `paymentFormLabels.js` registry). The payer-facing strings you set in `paymentMethodConfiguration.js` (`displayLabel`, `redirectInstruction`) can be a **plain string** or a **Custom Label reference** (`labels.<name>`) — use a label when you want the text to follow the site language:
 
   ```js
   import {labels} from './paymentFormLabels';
   // ...
-  displayLabel: labels.ec_label_method_credit_card,
-  redirectInstruction: labels.ec_label_redirect_instruction,
+  // Plain string — simplest, not localized:
+  displayLabel: 'Credit Card',
+  // Custom Label reference — follows the site language:
+  displayLabel: labels.ec_label_payment_description,
   ```
 
-  Omit a method's `displayLabel` to fall back to the API method name (the **smart default**). Visible parameter `displayLabel`s work the same way, falling back to the parameter `name`.
+  To use a label, add it to `CustomLabels.labels-meta.xml` and the `paymentFormLabels.js` registry, then reference it as `labels.<name>`. Omit a method's `displayLabel` to fall back to the API method name (the **smart default**); visible parameter `displayLabel`s fall back to the parameter `name`.
 
 **Translating / overriding the text** (done in your own org, per language):
 

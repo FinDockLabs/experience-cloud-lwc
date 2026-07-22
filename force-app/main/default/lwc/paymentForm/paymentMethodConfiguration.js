@@ -95,7 +95,7 @@ export const PAYMENT_METHOD_CONFIG = [
         enabledRecurring: true,
         isDefaultOneTime: true,
         isDefaultRecurring: false,
-        displayLabel: labels.ec_label_method_credit_card,
+        displayLabel: 'Credit Card',
         parameters: [
             {
                 name: 'locale',
@@ -122,6 +122,6 @@ export const PAYMENT_METHOD_CONFIG = [
         isDefaultOneTime: false,
         isDefaultRecurring: false,
         displayLabel: 'iDEAL | Wero',
-        redirectInstruction: labels.ec_label_redirect_instruction
+        redirectInstruction: 'You will be redirected to your bank to complete the payment.'
     }
 ];
