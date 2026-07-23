@@ -84,8 +84,6 @@
  *   required          Whether the processor requires this parameter.
  *   description       Human-readable explanation of the parameter.
  */
-import {labels} from './paymentFormLabels';
-
 export const PAYMENT_METHOD_CONFIG = [
     {
         paymentProcessor: 'PaymentHub-Stripe',
@@ -107,7 +105,7 @@ export const PAYMENT_METHOD_CONFIG = [
                 name: 'description',
                 value: '',
                 visibleToCustomer: true,
-                displayLabel: labels.ec_label_payment_description,
+                displayLabel: 'Description',
                 required: false,
                 description: "Description of the payment for the payer's bank."
             }
