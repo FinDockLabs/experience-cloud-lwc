@@ -54,21 +54,20 @@ describe('c-payment-form WCAG 2.2 AA accessibility', () => {
         await expect(element).toBeAccessible();
     });
 
-    // ── 4. Config error banner — announced via role="alert" ─────────────────────
-    // Covers: WCAG 4.1.3 Status Messages
-    // The config error banner must be announced to assistive tech without
-    // requiring focus to move to it.
-    it('passes axe scan when the config error banner is shown', async () => {
+    // ── 4. Empty / misconfigured payment method config ──────────────────────────
+    // A structurally invalid config replaces the selector with a static unavailable message
+    // (problems are also logged to the console); the form must still pass the scan.
+    it('passes axe scan when the payment method config is empty', async () => {
         const original = [...PAYMENT_METHOD_CONFIG];
-        PAYMENT_METHOD_CONFIG.length = 0; // empty config → error banner
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        PAYMENT_METHOD_CONFIG.length = 0;
         try {
             const element = createComponent();
             await Promise.resolve();
-
-            expect(element.shadowRoot.querySelector('.payment-error-banner[role="alert"]')).not.toBeNull();
             await expect(element).toBeAccessible();
         } finally {
             PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, ...original);
+            errorSpy.mockRestore();
         }
     });
 });

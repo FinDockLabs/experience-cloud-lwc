@@ -8,14 +8,8 @@ import ec_placeholder_last_name from '@salesforce/label/c.ec_placeholder_last_na
 import ec_placeholder_email from '@salesforce/label/c.ec_placeholder_email';
 import ec_header_personal_details from '@salesforce/label/c.ec_header_personal_details';
 import ec_header_select_payment_method from '@salesforce/label/c.ec_header_select_payment_method';
-import ec_error_config_invalid from '@salesforce/label/c.ec_error_config_invalid';
-import ec_error_config_empty from '@salesforce/label/c.ec_error_config_empty';
-import ec_error_config_missing_field from '@salesforce/label/c.ec_error_config_missing_field';
-import ec_error_no_methods_for_frequency from '@salesforce/label/c.ec_error_no_methods_for_frequency';
+import ec_error_payment_methods_unavailable from '@salesforce/label/cpm.ec_error_payment_methods_unavailable';
 import ec_error_invalid_name from '@salesforce/label/c.ec_error_invalid_name';
-import ec_label_payment_description from '@salesforce/label/c.ec_label_payment_description';
-import ec_label_method_credit_card from '@salesforce/label/c.ec_label_method_credit_card';
-import ec_label_redirect_instruction from '@salesforce/label/c.ec_label_redirect_instruction';
 
 const labels = {
     ec_label_first_name,
@@ -28,14 +22,8 @@ const labels = {
     ec_placeholder_email,
     ec_header_personal_details,
     ec_header_select_payment_method,
-    ec_error_config_invalid,
-    ec_error_config_empty,
-    ec_error_config_missing_field,
-    ec_error_no_methods_for_frequency,
+    ec_error_payment_methods_unavailable,
     ec_error_invalid_name,
-    ec_label_payment_description,
-    ec_label_method_credit_card,
-    ec_label_redirect_instruction,
 };
 
 export { labels };

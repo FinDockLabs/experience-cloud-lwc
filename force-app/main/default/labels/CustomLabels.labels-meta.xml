@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
-
     <!-- Payment Form — field labels -->
     <labels>
         <fullName>ec_label_first_name</fullName>
-        <categories>Experience Cloud</categories>
+        <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>First name field label</shortDescription>
@@ -12,7 +11,7 @@
     </labels>
     <labels>
         <fullName>ec_label_last_name</fullName>
-        <categories>Experience Cloud</categories>
+        <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Last name field label</shortDescription>
@@ -20,7 +19,7 @@
     </labels>
     <labels>
         <fullName>ec_label_email_address</fullName>
-        <categories>Experience Cloud</categories>
+        <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Email address field label</shortDescription>
@@ -28,7 +27,7 @@
     </labels>
     <labels>
         <fullName>ec_placeholder_first_name</fullName>
-        <categories>Experience Cloud</categories>
+        <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>First name field placeholder</shortDescription>
@@ -36,7 +35,7 @@
     </labels>
     <labels>
         <fullName>ec_placeholder_last_name</fullName>
-        <categories>Experience Cloud</categories>
+        <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Last name field placeholder</shortDescription>
@@ -44,7 +43,7 @@
     </labels>
     <labels>
         <fullName>ec_error_invalid_name</fullName>
-        <categories>Experience Cloud</categories>
+        <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Error shown when a name field contains only whitespace</shortDescription>
@@ -52,7 +51,7 @@
     </labels>
     <labels>
         <fullName>ec_placeholder_email</fullName>
-        <categories>Experience Cloud</categories>
+        <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Email field placeholder</shortDescription>
@@ -60,7 +59,7 @@
     </labels>
     <labels>
         <fullName>ec_label_frequency_one_time</fullName>
-        <categories>Experience Cloud</categories>
+        <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Frequency option: one-time payment</shortDescription>
@@ -68,49 +67,15 @@
     </labels>
     <labels>
         <fullName>ec_label_frequency_recurring</fullName>
-        <categories>Experience Cloud</categories>
+        <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Frequency option: recurring payment</shortDescription>
         <value>Monthly</value>
     </labels>
-
-    <!-- Payment Form — configuration errors -->
-    <labels>
-        <fullName>ec_error_config_invalid</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Error shown when paymentMethodConfiguration.js has invalid structure</shortDescription>
-        <value>Payment method configuration is invalid. Check the browser console for details.</value>
-    </labels>
-    <labels>
-        <fullName>ec_error_config_empty</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Error shown when no payment methods are available after filtering</shortDescription>
-        <value>No payment methods are configured. Add at least one entry to paymentMethodConfiguration.js.</value>
-    </labels>
-    <labels>
-        <fullName>ec_error_config_missing_field</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Error shown when a config entry is missing a required field</shortDescription>
-        <value>Payment method configuration entry is missing required field: {0}. Check paymentMethodConfiguration.js.</value>
-    </labels>
-    <labels>
-        <fullName>ec_error_no_methods_for_frequency</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Shown when no payment method is available for the selected frequency</shortDescription>
-        <value>No payment methods are available for the selected payment frequency.</value>
-    </labels>
     <labels>
         <fullName>ec_header_personal_details</fullName>
-        <categories>Experience Cloud</categories>
+        <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Section header above the payer contact fields</shortDescription>
@@ -118,36 +83,10 @@
     </labels>
     <labels>
         <fullName>ec_header_select_payment_method</fullName>
-        <categories>Experience Cloud</categories>
+        <categories>FinDock, Experience Cloud</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Section header above the payment method selector</shortDescription>
         <value>Select a payment method</value>
-    </labels>
-    <!-- Payment Form — parameter labels -->
-    <labels>
-        <fullName>ec_label_payment_description</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Payment Description label</shortDescription>
-        <value>Payment Description</value>
-    </labels>
-    <!-- Payment Form — payment method labels -->
-    <labels>
-        <fullName>ec_label_method_credit_card</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Credit Card payment method label</shortDescription>
-        <value>Credit Card</value>
-    </labels>
-    <labels>
-        <fullName>ec_label_redirect_instruction</fullName>
-        <categories>Experience Cloud</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Message shown before a payer is redirected to their bank/PSP</shortDescription>
-        <value>You will be redirected to your bank to complete the payment.</value>
     </labels>
 </CustomLabels>

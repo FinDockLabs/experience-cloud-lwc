@@ -56,36 +56,49 @@ describe('paymentForm', () => {
         });
     });
 
-    describe('config / availability guards', () => {
-        // Both cases mutate the imported config array; snapshot and restore it around each test.
+    describe('config validation', () => {
+        // Structural problems (empty array, missing paymentProcessor/paymentMethod) are logged to the
+        // console for the admin and gate rendering — no payer-facing error is shown. There is also no
+        // way to pay: the Pay Button stays disabled until a method is selected.
         let original;
+        let errorSpy;
         beforeEach(() => {
             original = [...PAYMENT_METHOD_CONFIG];
+            errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         });
         afterEach(() => {
             PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, ...original);
+            errorSpy.mockRestore();
         });
 
-        it('shows an error banner and hides the payment UI when the config is empty', () => {
+        it('shows the unavailable message instead of the selector and logs when the config is empty', () => {
             PAYMENT_METHOD_CONFIG.length = 0;
             const element = createComponent({ amount: 25 });
-            expect(element.shadowRoot.querySelector('.payment-error-banner')).not.toBeNull();
+            // Form still renders, but the selector is replaced by the packaged unavailable message.
+            expect(element.shadowRoot.querySelector('.slds-card')).not.toBeNull();
             expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
-            expect(element.shadowRoot.querySelector('cpm-pay-button')).toBeNull();
+            expect(element.shadowRoot.querySelector('.error-message')).not.toBeNull();
+            expect(element.shadowRoot.querySelector('cpm-pay-button').disabled).toBe(true);
+            expect(errorSpy).toHaveBeenCalled();
         });
 
-        it('shows a friendly banner (not the selector) when no method matches the frequency', () => {
-            // Only a one-time method remains, but the admin picked recurring.
+        it('shows the unavailable message and logs when an entry is missing a required field', () => {
             PAYMENT_METHOD_CONFIG.splice(0, PAYMENT_METHOD_CONFIG.length, {
-                paymentProcessor: 'PaymentHub-Stripe', paymentMethod: 'Ideal',
-                enabledOneTime: true, enabledRecurring: false
+                paymentProcessor: 'PaymentHub-Stripe' // paymentMethod missing
             });
-            const element = createComponent({ amount: 25, defaultFrequency: 'Monthly' });
-            const banner = element.shadowRoot.querySelector('.payment-error-banner');
-            expect(banner).not.toBeNull();
-            expect(banner.textContent).toContain('No payment methods are available');
+            const element = createComponent({ amount: 25 });
             expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
-            expect(element.shadowRoot.querySelector('cpm-pay-button')).toBeNull();
+            expect(element.shadowRoot.querySelector('.error-message')).not.toBeNull();
+            expect(errorSpy).toHaveBeenCalled();
+        });
+
+        it('keeps the Pay Button disabled until a method is selected (valid config)', () => {
+            const element = createComponent({ amount: 25 });
+            setField(element, 'firstName', 'Jane');
+            setField(element, 'lastName', 'Doe');
+            setField(element, 'email', 'jane@example.com');
+            // No method selected (e.g. the selector errored) → button must stay disabled.
+            expect(element.shadowRoot.querySelector('cpm-pay-button').disabled).toBe(true);
         });
     });
 

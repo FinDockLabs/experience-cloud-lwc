@@ -84,8 +84,6 @@
  *   required          Whether the processor requires this parameter.
  *   description       Human-readable explanation of the parameter.
  */
-import {labels} from './paymentFormLabels';
-
 export const PAYMENT_METHOD_CONFIG = [
     {
         paymentProcessor: 'PaymentHub-Stripe',
@@ -95,7 +93,7 @@ export const PAYMENT_METHOD_CONFIG = [
         enabledRecurring: true,
         isDefaultOneTime: true,
         isDefaultRecurring: false,
-        displayLabel: labels.ec_label_method_credit_card,
+        displayLabel: 'Credit Card',
         parameters: [
             {
                 name: 'locale',
@@ -107,7 +105,7 @@ export const PAYMENT_METHOD_CONFIG = [
                 name: 'description',
                 value: '',
                 visibleToCustomer: true,
-                displayLabel: labels.ec_label_payment_description,
+                displayLabel: 'Description',
                 required: false,
                 description: "Description of the payment for the payer's bank."
             }
@@ -121,7 +119,7 @@ export const PAYMENT_METHOD_CONFIG = [
         enabledRecurring: false,
         isDefaultOneTime: false,
         isDefaultRecurring: false,
-        displayLabel: 'iDEAL',
-        redirectInstruction: labels.ec_label_redirect_instruction
+        displayLabel: 'iDEAL | Wero',
+        redirectInstruction: 'You will be redirected to your bank to complete the payment.'
     }
 ];

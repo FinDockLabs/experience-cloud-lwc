@@ -1,22 +1,9 @@
-.visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
-}
-
 .form-section {
     border: 0;
     padding: 0;
     margin-block: 0;
     margin-inline: 0;
-    margin-block-end: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-6, var(--slds-g-spacing-6, 1rem)));
+    margin-block-end: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-medium, var(--slds-g-spacing-4, 1rem)));
     min-width: 0;
 }
 
@@ -24,14 +11,14 @@
     display: block;
     width: 100%;
     padding: 0;
-    margin-block-end: var(--slds-g-spacing-2, 0.5rem);
+    margin-block-end: var(--dxp-s-spacing-small, var(--dxp-g-spacing-small, var(--slds-g-spacing-2, 0.5rem)));
     font-size: var(--slds-g-font-scale-2, 1rem);
     font-weight: var(--slds-g-font-weight-bold, 700);
-    color: var(--dxp-s-color-text-default, var(--dxp-g-color-text-default, var(--slds-g-color-neutral-base-10)));
+    color: var(--dxp-s-text-heading-small-color, var(--dxp-g-root-contrast, var(--slds-g-color-neutral-base-10, #181818)));
 }
 
 .payment-summary {
-    margin-block-end: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-6, var(--slds-g-spacing-6, 1rem)));
+    margin-block-end: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-medium, var(--slds-g-spacing-4, 1rem)));
     text-align: center;
 }
 
@@ -39,18 +26,17 @@
     margin: 0;
     font-size: var(--slds-g-font-scale-6, 2rem);
     font-weight: var(--slds-g-font-weight-bold, 700);
-    color: var(--dxp-s-color-text-default, var(--dxp-g-color-text-default, var(--slds-g-color-neutral-base-10)));
+    color: var(--dxp-s-body-text-color, var(--dxp-g-root-contrast, var(--slds-g-color-neutral-base-10, #181818)));
 }
 
 .payment-summary__frequency {
     margin: 0;
     font-size: var(--slds-g-font-scale-1, 0.875rem);
-    color: var(--dxp-s-color-text-weak, var(--dxp-g-color-text-weak, var(--slds-g-color-neutral-base-30)));
+    color: var(--dxp-s-body-small-text-color, var(--dxp-g-root-contrast, var(--slds-g-color-neutral-base-30, #444444)));
 }
 
-/* Force a stable, full-width box regardless of internal state (e.g. cpm-pay-button
-   otherwise renders content-width when idle and jumps to full-width when it shows
-   its own inline error banner, making the button visibly change size). */
+/* Full-width, stable box so cpm-pay-button doesn't jump from content- to full-width
+   when it toggles its own inline error banner. */
 c-payment-selector,
 cpm-pay-button {
     display: block;
@@ -59,26 +45,18 @@ cpm-pay-button {
 }
 
 cpm-pay-button {
-    margin-block-start: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-6, var(--slds-g-spacing-6, 1rem)));
+    margin-block-start: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-medium, var(--slds-g-spacing-4, 1rem)));
 }
 
-.payment-error-banner {
+.payment-methods-error {
     display: flex;
-    align-items: flex-start;
-    gap: var(--slds-g-spacing-2);
-    margin-top: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-6, var(--slds-g-spacing-6, 1rem)));
-    padding: var(--slds-g-spacing-3);
-    border-radius: var(--dxp-s-form-element-radius-border, var(--slds-g-radius-border-2));
-    background-color: var(--slds-g-color-error-base-95);
+    flex-direction: column;
+    align-items: center;
+    gap: var(--dxp-s-spacing-small, var(--dxp-g-spacing-small, var(--slds-g-spacing-2, 0.5rem)));
+    text-align: center;
 }
 
-.payment-error-banner__icon {
-    flex-shrink: 0;
-    margin-top: 0.125rem;
-}
-
-.payment-error-banner__message {
+.error-message {
     margin: 0;
-    font-weight: var(--slds-g-font-weight-bold, 700);
-    color: var(--dxp-s-color-text-error, var(--dxp-g-color-text-error, var(--slds-g-color-error-1, #c23934)));
+    color: var(--dxp-g-destructive, var(--slds-g-color-error-1, #c23934));
 }

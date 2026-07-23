@@ -27,7 +27,7 @@ const MOCK_CONFIG = [
         enabledRecurring: false,
         isDefaultOneTime: false,
         isDefaultRecurring: false,
-        displayLabel: 'iDEAL',
+        displayLabel: 'iDEAL | Wero',
         redirectInstruction: 'You will be redirected to your bank.'
     }
 ];

@@ -111,9 +111,8 @@ See [Initial payments for recurring payments](https://docs.findock.com/api/initi
 
 ### Validation and empty states
 
-- **Invalid config** — if `PAYMENT_METHOD_CONFIG` is not an array, is empty, or an entry is missing `paymentMethod` / `paymentProcessor`, the form shows an error banner and hides the payment UI (no selector, no Pay Button) so a broken config can't be submitted.
-- **No method for the selected frequency** — if the config is valid but no method is enabled for the selected frequency (e.g. `defaultFrequency` is `Monthly` but every method is one-time only), the form shows a "no payment methods available" banner in place of the selector.
-- **Runtime failures** — a well-formed config that references a method/processor/target not active in the org isn't caught up front; the PaymentIntent fails at runtime and the message is shown in the payment error banner. Regenerate the config (`npm run generate:config`) when the org's methods change.
+- **Misconfigured payment methods** — the form checks `paymentMethodConfiguration.js` on load. If it isn't an array, is empty, or an entry is missing `paymentProcessor` / `paymentMethod`, the form renders nothing and logs the specific problem(s) to the browser console. For a valid config, the managed selector surfaces its own message if methods still can't be shown, and the Pay Button stays disabled until a method is selected — so a broken config can never be submitted.
+- **Runtime failures** — a well-formed config that references a method/processor/target not active in the org isn't caught up front; the PaymentIntent fails at runtime and the message is surfaced via the payment error channel. Regenerate the config (`npm run generate:config`) when the org's methods change.
 
 ### Flat parameter fields
 
@@ -130,18 +129,18 @@ See [Initial payments for recurring payments](https://docs.findock.com/api/initi
 
 The components are built to run on a multilingual Experience Cloud (LWR) site — one site with several languages enabled, not a page per language. Guests pick a language with the standard [Language Selector](https://help.salesforce.com/s/articleView?id=sf.rss_language_picker.htm) (the page reloads translated); authenticated users get their profile language. Don't build a language switcher into the form — rely on the standard component.
 
-**All payer-facing text is a Custom Label.** Every string our components render comes from a Custom Label in the `Experience Cloud` category (see `force-app/main/default/labels/CustomLabels.labels-meta.xml` and the `paymentFormLabels.js` registry). This includes the strings you set in `paymentMethodConfiguration.js`:
-
-- **Payment method names** (`displayLabel`) and **redirect messages** (`redirectInstruction`) — reference a Custom Label so they follow the site language:
+**Component text comes from Custom Labels.** The strings our components render come from Custom Labels categorized as `FinDock, Experience Cloud` (and `FinDock, Accessibility` for assistive-text labels) — see `force-app/main/default/labels/CustomLabels.labels-meta.xml` and the `paymentFormLabels.js` registry. The payer-facing strings you set in `paymentMethodConfiguration.js` (`displayLabel`, `redirectInstruction`) can be a **plain string** or a **Custom Label reference** (`labels.<name>`) — use a label when you want the text to follow the site language:
 
   ```js
   import {labels} from './paymentFormLabels';
   // ...
-  displayLabel: labels.ec_label_method_credit_card,
-  redirectInstruction: labels.ec_label_redirect_instruction,
+  // Plain string — simplest, not localized:
+  displayLabel: 'Credit Card',
+  // Custom Label reference — follows the site language:
+  displayLabel: labels.ec_your_label,
   ```
 
-  Omit a method's `displayLabel` to fall back to the API method name (the **smart default**). Visible parameter `displayLabel`s work the same way, falling back to the parameter `name`.
+  To use a label, add it to `CustomLabels.labels-meta.xml` and the `paymentFormLabels.js` registry, then reference it as `labels.<name>`. Omit a method's `displayLabel` to fall back to the API method name (the **smart default**); visible parameter `displayLabel`s fall back to the parameter `name`.
 
 **Translating / overriding the text** (done in your own org, per language):
 
