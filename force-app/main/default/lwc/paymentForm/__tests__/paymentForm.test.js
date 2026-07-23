@@ -83,7 +83,7 @@ describe('paymentForm', () => {
             const element = createComponent({ amount: 25, defaultFrequency: 'Monthly' });
             const banner = element.shadowRoot.querySelector('.payment-error-banner');
             expect(banner).not.toBeNull();
-            expect(banner.textContent).toContain('currently unavailable');
+            expect(banner.textContent).toContain('Something went wrong');
             expect(element.shadowRoot.querySelector('c-payment-selector')).toBeNull();
             expect(element.shadowRoot.querySelector('cpm-pay-button')).toBeNull();
         });

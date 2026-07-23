@@ -139,8 +139,7 @@ export default class PaymentForm extends LightningElement {
         );
     }
 
-    // Validate the shipped config and log any problems to the console for admins. Payers only ever
-    // see the generic ec_error_unavailable notice — no specifics are surfaced in the UI.
+    // Validate the config; log any problems to the console and set _configValid.
     _checkConfiguration() {
         const config = PAYMENT_METHOD_CONFIG;
         const problems = [];
