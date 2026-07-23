@@ -111,7 +111,7 @@ See [Initial payments for recurring payments](https://docs.findock.com/api/initi
 
 ### Validation and empty states
 
-- **Unavailable form** — if `PAYMENT_METHOD_CONFIG` is not an array, is empty, an entry is missing `paymentMethod` / `paymentProcessor`, or no method is enabled for the selected frequency (e.g. `defaultFrequency` is `Monthly` but every method is one-time only), the form hides the whole payment UI (no fields, no selector, no Pay Button) and shows a single generic notice (the packaged `cpm.ec_error_payment_methods_unavailable` label) so a broken config can't be submitted.
+- **Misconfigured payment methods** — the form checks `paymentMethodConfiguration.js` on load. If it isn't an array, is empty, or an entry is missing `paymentProcessor` / `paymentMethod`, the form renders nothing and logs the specific problem(s) to the browser console. For a valid config, the managed selector surfaces its own message if methods still can't be shown, and the Pay Button stays disabled until a method is selected — so a broken config can never be submitted.
 - **Runtime failures** — a well-formed config that references a method/processor/target not active in the org isn't caught up front; the PaymentIntent fails at runtime and the message is surfaced via the payment error channel. Regenerate the config (`npm run generate:config`) when the org's methods change.
 
 ### Flat parameter fields

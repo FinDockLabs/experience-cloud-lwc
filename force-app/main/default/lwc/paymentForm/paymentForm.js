@@ -43,7 +43,7 @@ export default class PaymentForm extends LightningElement {
     @track selectedPaymentMethod = null;
     @track paymentIntent = {};
     @track paymentError = null;
-    // Structural config validity (array present, entries have required fields). Set once on connect.
+    // Structural validity of the shipped config; set once on connect (see _validateConfig).
     _configValid = true;
 
     labels = labels;
@@ -73,20 +73,6 @@ export default class PaymentForm extends LightningElement {
             && this.selectedPaymentMethod?.recurringRequiresInitialPayment === true;
     }
 
-    get availableMethods() {
-        if (!Array.isArray(PAYMENT_METHOD_CONFIG)) {
-            return [];
-        }
-
-        return PAYMENT_METHOD_CONFIG.filter(m =>
-            this.isRecurring ? m.enabledRecurring : m.enabledOneTime
-        );
-    }
-
-    get isUnavailable() {
-        return !this._configValid || this.availableMethods.length === 0;
-    }
-
     get formattedAmount() {
         if (this.amount == null || this.amount === '') {
             return '';
@@ -104,6 +90,10 @@ export default class PaymentForm extends LightningElement {
             : this.labels.ec_label_frequency_one_time;
     }
 
+    get isConfigValid() {
+        return this._configValid;
+    }
+
     get isPayButtonDisabled() {
         const inputs = this.template.querySelectorAll('lightning-input');
         const allInputsValid = [...inputs].every(input => input.checkValidity());
@@ -119,7 +109,7 @@ export default class PaymentForm extends LightningElement {
 
     connectedCallback() {
         this.subscribeToPaymentFlow();
-        this._checkConfiguration();
+        this._validateConfig();
         this._updatePaymentIntentContext();
     }
 
@@ -139,20 +129,19 @@ export default class PaymentForm extends LightningElement {
         );
     }
 
-    // Validate the config; log any problems to the console and set _configValid.
-    _checkConfiguration() {
+    _validateConfig() {
         const config = PAYMENT_METHOD_CONFIG;
         const problems = [];
 
         if (!Array.isArray(config)) {
-            problems.push('PAYMENT_METHOD_CONFIG must be an array — check paymentMethodConfiguration.js.');
+            problems.push('PAYMENT_METHOD_CONFIG must be an array.');
         } else if (config.length === 0) {
-            problems.push('No payment methods are configured in paymentMethodConfiguration.js.');
+            problems.push('No payment methods are configured.');
         } else {
             config.forEach((entry, i) => {
-                for (const field of ['paymentMethod', 'paymentProcessor']) {
-                    if (!entry[field]) {
-                        problems.push(`Payment method entry #${i} is missing required field "${field}".`);
+                for (const field of ['paymentProcessor', 'paymentMethod']) {
+                    if (!entry?.[field]) {
+                        problems.push(`Entry #${i} is missing required field "${field}".`);
                     }
                 }
             });
@@ -160,17 +149,9 @@ export default class PaymentForm extends LightningElement {
 
         this._configValid = problems.length === 0;
 
-        // A valid config with no method enabled for the active frequency is also "unavailable".
-        if (this._configValid && this.availableMethods.length === 0) {
-            problems.push(`No payment methods are enabled for the "${this.frequency}" payment frequency.`);
-        }
-
-        if (problems.length > 0) {
+        if (!this._configValid) {
             // eslint-disable-next-line no-console
-            console.error(
-                '[FinDock] Payment form unavailable due to configuration issue(s):\n- ' +
-                    problems.join('\n- ')
-            );
+            console.error('[FinDock] paymentForm — check paymentMethodConfiguration.js:\n- ' + problems.join('\n- '));
         }
     }
 

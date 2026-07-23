@@ -48,22 +48,15 @@ cpm-pay-button {
     margin-block-start: var(--slds-g-spacing-4);
 }
 
-.payment-error-banner {
+.payment-methods-error {
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
     gap: var(--slds-g-spacing-2);
-    margin-block-start: var(--slds-g-spacing-4);
-    padding: var(--slds-g-spacing-3);
-    border-radius: var(--dxp-s-form-element-radius-border, var(--slds-g-radius-border-2));
-    background-color: var(--slds-g-color-error-base-95);
+    text-align: center;
 }
 
-.payment-error-banner__icon {
-    flex-shrink: 0;
-}
-
-.payment-error-banner__message {
+.error-message {
     margin: 0;
-    font-weight: var(--slds-g-font-weight-bold);
     color: var(--dxp-g-destructive, var(--slds-g-color-error-1));
 }
