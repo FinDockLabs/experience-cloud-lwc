@@ -14,6 +14,7 @@
                                  placeholder={labels.ec_placeholder_first_name}
                                  value={firstName}
                                  data-field="firstName"
+                                 autocomplete="given-name"
                                  required
                                  pattern=".*\S.*"
                                  message-when-pattern-mismatch={labels.ec_error_invalid_name}
@@ -24,6 +25,7 @@
                                  placeholder={labels.ec_placeholder_last_name}
                                  value={lastName}
                                  data-field="lastName"
+                                 autocomplete="family-name"
                                  required
                                  pattern=".*\S.*"
                                  message-when-pattern-mismatch={labels.ec_error_invalid_name}
@@ -34,6 +36,7 @@
                                  placeholder={labels.ec_placeholder_email}
                                  value={email}
                                  data-field="email"
+                                 autocomplete="email"
                                  required
                                  onchange={handleFieldChange}>
                 </lightning-input>
