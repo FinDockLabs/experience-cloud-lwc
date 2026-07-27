@@ -1,6 +1,7 @@
 /**
- * Supplies the org's active currency ISO codes to the currencyPicker LWC.
- * Used only when no explicit allow-list is configured on the component.
+ * Supplies the org's active currency ISO codes for the currency picker
+ * used only when no explicit allow-list is configured).
+ * Consumed by the runtime currencyPicker (auto-detect) and by its Flow CPE (currencyPickerConfig).
  *
  * Guest access: expose this class to the site's Guest User profile/permission set to enable
  * auto-detect on public pages. When it isn't accessible or the call fails, the component falls
