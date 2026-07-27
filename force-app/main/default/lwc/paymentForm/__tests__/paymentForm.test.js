@@ -102,9 +102,27 @@ describe('paymentForm', () => {
         });
     });
 
+    describe('currency', () => {
+        it('renders the currency picker', () => {
+            const element = createComponent({ amount: 25, allowedCurrencies: 'EUR,USD' });
+            expect(element.shadowRoot.querySelector('c-currency-picker')).not.toBeNull();
+        });
+
+        it('reformats the amount and updates the intent when the payer changes currency', async () => {
+            const element = createComponent({ amount: 1000, defaultCurrency: 'EUR', allowedCurrencies: 'EUR,USD' });
+            await Promise.resolve();
+            element.shadowRoot.querySelector('c-currency-picker').dispatchEvent(
+                new CustomEvent('currencychange', { detail: { currency: 'USD' } })
+            );
+            await Promise.resolve();
+            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.OneTime.CurrencyISOCode).toBe('USD');
+            expect(element.shadowRoot.querySelector('.payment-summary__amount').textContent).toContain('$');
+        });
+    });
+
     describe('admin-configured amount and frequency (read-only)', () => {
         it('shows the admin amount, currency-formatted', () => {
-            const element = createComponent({ amount: 1000, currency: 'USD' });
+            const element = createComponent({ amount: 1000, defaultCurrency: 'USD' });
             const amount = element.shadowRoot.querySelector('.payment-summary__amount').textContent;
             expect(amount).toContain('1,000');
             expect(amount).toContain('$');
@@ -224,7 +242,7 @@ describe('paymentForm', () => {
         });
 
         it('passes the configured currency to the intent', async () => {
-            const element = createComponent({ amount: 10, currency: 'USD', defaultFrequency: 'One time' });
+            const element = createComponent({ amount: 10, defaultCurrency: 'USD', defaultFrequency: 'One time' });
             await Promise.resolve();
             expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.OneTime.CurrencyISOCode).toBe('USD');
         });

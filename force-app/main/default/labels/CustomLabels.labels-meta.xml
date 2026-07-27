@@ -89,4 +89,13 @@
         <shortDescription>Section header above the payment method selector</shortDescription>
         <value>Select a payment method</value>
     </labels>
+    <!-- Currency picker -->
+    <labels>
+        <fullName>ec_label_currency</fullName>
+        <categories>FinDock, Experience Cloud</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Currency selector label</shortDescription>
+        <value>Currency</value>
+    </labels>
 </CustomLabels>

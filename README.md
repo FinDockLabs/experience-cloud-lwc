@@ -23,7 +23,7 @@ Out of the box, the payment form uses fixed amount and frequency values. The for
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `currency` | String | `EUR` | ISO currency code shown next to the amount (e.g. `EUR`, `USD`, `GBP`). |
+| `defaultCurrency` | String | `EUR` | ISO currency code shown next to the amount (e.g. `EUR`, `USD`, `GBP`). Used as the fixed default when no picker is enabled. |
 | `amount` | Integer | — | Amount the payer is charged, preset and displayed as read-only. |
 | `defaultFrequency` | String | `One time` | Payment frequency, preset and displayed as read-only. In App Builder / Experience Builder choose `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
 
@@ -58,7 +58,7 @@ Example — embedding the standalone selector in a custom LWC:
 2. If the site needs to accept payments from unauthenticated (guest) users, complete the **Experience Cloud & Guest User Setup** steps in [experience-cloud-templates](https://github.com/FinDockLabs/experience-cloud-templates) first — payments will fail at runtime otherwise, even though the page renders correctly.
 3. Run `npm run generate:config -- --org <alias>` to generate `paymentMethodConfiguration.js` from your org's active payment methods, then fill in the `target` field for each entry. See [Payment Method Configuration](#payment-method-configuration) below for details.
 4. Update `SuccessURL` and `FailureURL` in `paymentForm.js` (`_updatePaymentIntentContext`) to point to pages within your Experience Cloud site. These are currently hardcoded (`https://example.com/...`); they will be exposed as `c-payment-form` design properties in a later release so they can be configured in Experience Builder without editing code.
-5. Add `c-payment-form` to your Experience Cloud page in Experience Builder. Set the **Currency**, **Amount**, and other design properties as needed.
+5. Add `c-payment-form` to your Experience Cloud page in Experience Builder. Set the **Default currency**, **Amount**, and other design properties as needed.
 
 ## Payment Method Configuration
 

@@ -12,8 +12,12 @@
     </targets>
     <targetConfigs>
         <targetConfig targets="lightning__RecordPage,lightning__HomePage,lightningCommunity__Default">
-            <property name="currency" type="String" label="Currency"
-                      description="ISO currency code shown next to the amount (e.g. EUR, USD, GBP)." default="EUR"/>
+            <property name="defaultCurrency" type="String" label="Default currency"
+                      description="ISO currency code shown next to the amount (e.g. EUR, USD, GBP). Used as the fixed default when no picker is enabled." default="EUR"/>
+            <property name="allowedCurrencies" type="String" label="Allowed currencies (CSV)"
+                      description="Comma-separated ISO codes (e.g. EUR,USD,GBP) to let the payer pick the currency. Leave empty to use the Default currency above."/>
+            <property name="currencySource" type="String" label="Default currency source"
+                      description="Currency selected on load: fixed (Default currency above), user (org/user currency), or page (?currency= URL parameter)." datasource="fixed,user,page" default="fixed"/>
             <property name="amount" type="Integer" label="Amount"
                       description="Amount the payer is charged. Set by the admin; shown read-only to the payer."/>
             <property name="defaultFrequency" type="String" label="Frequency"

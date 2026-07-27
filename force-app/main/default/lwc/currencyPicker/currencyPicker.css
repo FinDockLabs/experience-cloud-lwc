@@ -1,0 +1,4 @@
+.currency-picker {
+    display: block;
+    margin-block-end: var(--dxp-s-spacing-medium, var(--dxp-g-spacing-medium, var(--slds-g-spacing-4, 1rem)));
+}

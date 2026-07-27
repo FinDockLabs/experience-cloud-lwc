@@ -1,0 +1,12 @@
+<template>
+    <template lwc:if={showPicker}>
+        <lightning-combobox
+            class="currency-picker"
+            name="currency"
+            label={labels.ec_label_currency}
+            value={value}
+            options={options}
+            onchange={handleChange}>
+        </lightning-combobox>
+    </template>
+</template>

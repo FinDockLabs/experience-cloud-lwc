@@ -33,11 +33,16 @@ function todayISODate() {
 }
 
 export default class PaymentForm extends LightningElement {
-    @api currency = 'EUR';
-    @api amount;
+    @api defaultCurrency = 'EUR';
+    @api amount = '1';
     @api defaultFrequency = 'oneTime';
+    // Currency picker config — `defaultCurrency` is the fixed default; allowedCurrencies (CSV) enables the picker.
+    @api allowedCurrencies = '';
+    @api currencySource = 'fixed';
 
     @track firstName = '';
+    // Currency the payer picked in the currencyPicker; empty until they choose (falls back to `defaultCurrency`).
+    @track _selectedCurrency = '';
     @track lastName = '';
     @track email = '';
     @track selectedPaymentMethod = null;
@@ -73,14 +78,19 @@ export default class PaymentForm extends LightningElement {
             && this.selectedPaymentMethod?.recurringRequiresInitialPayment === true;
     }
 
+    // Currency the amount and payment intent use — the payer's picked currency, or the default.
+    get activeCurrency() {
+        return this._selectedCurrency || this.defaultCurrency;
+    }
+
     get formattedAmount() {
         if (this.amount == null || this.amount === '') {
             return '';
         }
         try {
-            return new Intl.NumberFormat(LOCALE, { style: 'currency', currency: this.currency }).format(Number(this.amount));
+            return new Intl.NumberFormat(LOCALE, { style: 'currency', currency: this.activeCurrency }).format(Number(this.amount));
         } catch {
-            return `${this.amount} ${this.currency}`;
+            return `${this.amount} ${this.activeCurrency}`;
         }
     }
 
@@ -157,14 +167,14 @@ export default class PaymentForm extends LightningElement {
 
     _updatePaymentIntentContext() {
         const amount = this.amount != null ? String(this.amount) : '';
-        const oneTimeBlock = { Amount: amount, CurrencyISOCode: this.currency };
+        const oneTimeBlock = { Amount: amount, CurrencyISOCode: this.activeCurrency };
 
         let scheduleBlocks;
         if (this.isRecurring) {
             scheduleBlocks = {
                 Recurring: {
                     Amount: amount,
-                    CurrencyISOCode: this.currency,
+                    CurrencyISOCode: this.activeCurrency,
                     Frequency: RECURRING_FREQUENCY,
                     StartDate: this.recurringStartDate
                 }
@@ -221,6 +231,11 @@ export default class PaymentForm extends LightningElement {
 
     handlePaymentMethodChanged(event) {
         this.selectedPaymentMethod = event.detail;
+        this._updatePaymentIntentContext();
+    }
+
+    handleCurrencyChange(event) {
+        this._selectedCurrency = event.detail.currency;
         this._updatePaymentIntentContext();
     }
 }

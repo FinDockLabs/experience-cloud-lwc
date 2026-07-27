@@ -42,6 +42,13 @@
                 </lightning-input>
             </fieldset>
 
+            <c-currency-picker
+                allowed-currencies={allowedCurrencies}
+                default-currency={defaultCurrency}
+                currency-source={currencySource}
+                oncurrencychange={handleCurrencyChange}>
+            </c-currency-picker>
+
             <fieldset class="form-section slds-form slds-form_stacked">
                 <legend class="section-header">{labels.ec_header_select_payment_method}</legend>
                 <template lwc:if={isConfigValid}>
