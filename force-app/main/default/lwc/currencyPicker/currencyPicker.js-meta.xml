@@ -15,12 +15,5 @@
             <property name="currencySource" type="String" datasource="fixed,user,page" default="fixed" label="Default currency source" description="Where the initial currency comes from: fixed (admin default), user (logged-in user), or page (page property / URL param)."/>
             <property name="pageCurrency" type="String" label="Page currency (when source = page)" description="ISO code passed from the page context; used only when Default currency source = page."/>
         </targetConfig>
-        <targetConfig targets="lightning__FlowScreen" configurationEditor="c-currency-picker-cpe">
-            <property name="allowedCurrencies" type="String" role="inputOnly" label="Allowed currencies (CSV)"/>
-            <property name="defaultCurrency" type="String" role="inputOnly" label="Default currency (ISO)"/>
-            <property name="currencySource" type="String" role="inputOnly" label="Default currency source (fixed | user | page)"/>
-            <property name="pageCurrency" type="String" role="inputOnly" label="Page currency (when source = page)"/>
-            <property name="value" type="String" role="outputOnly" label="Selected currency (ISO)"/>
-        </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

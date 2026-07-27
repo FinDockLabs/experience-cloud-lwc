@@ -1,9 +1,9 @@
 import { createElement } from 'lwc';
 import CurrencyPicker from 'c/currencyPicker';
-import getActiveCurrencyIsoCodes from '@salesforce/apex/CurrencyPickerController.getActiveCurrencyIsoCodes';
+import getActiveCurrencies from '@salesforce/apex/CurrencyPickerController.getActiveCurrencies';
 
 // @salesforce/i18n/currency is mocked to 'USD' (jest-mocks/i18n/currency).
-// getActiveCurrencyIsoCodes is mocked to a single-currency org (empty list) by default.
+// getActiveCurrencies is mocked to a single-currency org (empty list) by default.
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -61,7 +61,11 @@ describe('c-currency-picker', () => {
     });
 
     it('auto-detects the org currencies via Apex when no allow-list is set', async () => {
-        getActiveCurrencyIsoCodes.mockResolvedValueOnce(['EUR', 'USD', 'GBP']);
+        getActiveCurrencies.mockResolvedValueOnce({
+            isMultiCurrency: true,
+            currencies: ['EUR', 'USD', 'GBP'],
+            defaultCurrency: 'EUR'
+        });
         const { element } = mount({}); // no allow-list → triggers auto-detect
         await flush();
         const combobox = element.shadowRoot.querySelector('lightning-combobox');
@@ -71,7 +75,7 @@ describe('c-currency-picker', () => {
     });
 
     it('keeps the single fallback when Apex returns one/zero currencies', async () => {
-        getActiveCurrencyIsoCodes.mockResolvedValueOnce([]);
+        getActiveCurrencies.mockResolvedValueOnce({ isMultiCurrency: false, currencies: [], defaultCurrency: '' });
         const { element } = mount({ defaultCurrency: 'GBP' });
         await flush();
         expect(element.shadowRoot.querySelector('lightning-combobox')).toBeNull();
@@ -80,7 +84,7 @@ describe('c-currency-picker', () => {
 
     it('does not call Apex when an allow-list is provided', () => {
         mount({ allowedCurrencies: 'EUR,USD' });
-        expect(getActiveCurrencyIsoCodes).not.toHaveBeenCalled();
+        expect(getActiveCurrencies).not.toHaveBeenCalled();
     });
 
     describe('default currency source', () => {

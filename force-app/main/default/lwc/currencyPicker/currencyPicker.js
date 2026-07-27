@@ -2,7 +2,7 @@ import { api, track, LightningElement } from 'lwc';
 import { FlowAttributeChangeEvent } from 'lightning/flowSupport';
 import LOCALE from '@salesforce/i18n/locale';
 import USER_CURRENCY from '@salesforce/i18n/currency';
-import getActiveCurrencyIsoCodes from '@salesforce/apex/CurrencyPickerController.getActiveCurrencyIsoCodes';
+import getActiveCurrencies from '@salesforce/apex/CurrencyPickerController.getActiveCurrencies';
 
 import ec_label_currency from '@salesforce/label/c.ec_label_currency';
 
@@ -22,7 +22,7 @@ const ISO_CODE = /^[A-Z]{3}$/;
  * it collapses (no visible control) and behaves like a fixed currency.
  *
  * Currency list (Decision A — Hybrid): use `allowedCurrencies` (CSV) when set; otherwise auto-detect
- * the org's active currencies via Apex (CurrencyPickerController.getActiveCurrencyIsoCodes). While that
+ * the org's active currencies via Apex (CurrencyPickerController.getActiveCurrencies). While that
  * loads — and if it fails or the guest can't access it — fall back to a single currency
  * (`defaultCurrency`, else the org/user currency), so the picker is never empty.
  */
@@ -82,9 +82,9 @@ export default class CurrencyPicker extends LightningElement {
     // Auto-detect the org's active currencies (Apex). On failure/guest without access, keep the
     // synchronous single-currency fallback so payments still work.
     _autoDetect() {
-        getActiveCurrencyIsoCodes()
-            .then((isoCodes) => {
-                const codes = dedupe((isoCodes || []).map(normalize).filter(Boolean));
+        getActiveCurrencies()
+            .then((info) => {
+                const codes = dedupe((info && info.currencies ? info.currencies : []).map(normalize).filter(Boolean));
                 if (codes.length > 1) {
                     this._applyCurrencies(codes);
                 }
