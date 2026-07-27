@@ -21,7 +21,7 @@ const ISO_CODE = /^[A-Z]{3}$/;
  * properties) and as a Flow screen component (`value` output). When only one currency is available
  * it collapses (no visible control) and behaves like a fixed currency.
  *
- * Currency list (Decision A — Hybrid): use `allowedCurrencies` (CSV) when set; otherwise auto-detect
+ * Currency list: use `allowedCurrencies` (CSV) when set; otherwise auto-detect
  * the org's active currencies via Apex (CurrencyPickerController.getActiveCurrencies). While that
  * loads — and if it fails or the guest can't access it — fall back to a single currency
  * (`defaultCurrency`, else the org/user currency), so the picker is never empty.
@@ -57,13 +57,11 @@ export default class CurrencyPicker extends LightningElement {
         return this._currencies.map((code) => ({ label: optionLabel(code), value: code }));
     }
 
-    // Show the dropdown only when there is a real choice (more than one currency).
     get showPicker() {
         return this._currencies.length > 1;
     }
 
     connectedCallback() {
-        // Decision A (Hybrid): an explicit allow-list wins and needs no Apex.
         const explicit = dedupe((this.allowedCurrencies || '').split(',').map(normalize).filter(Boolean));
         if (explicit.length) {
             this._applyCurrencies(explicit);
@@ -105,7 +103,7 @@ export default class CurrencyPicker extends LightningElement {
         return single ? [single] : [];
     }
 
-    // Decision B resolution: source value → allowed-list check → Fixed default → first allowed.
+    //source value → allowed-list check → Fixed default → first allowed.
     _resolveInitial() {
         const candidate = normalize(this._fromSource());
         if (candidate && this._currencies.includes(candidate)) {
@@ -131,10 +129,7 @@ export default class CurrencyPicker extends LightningElement {
     }
 
     _emit() {
-        // Experience Cloud: parent (paymentForm) listens for this to reformat the amount.
         this.dispatchEvent(new CustomEvent('currencychange', { detail: { currency: this._value } }));
-        // Flow: notify the runtime so the `value` output updates and reactive references
-        // (e.g. amountAndFrequency.defaultCurrency = {!currencyPicker.value}) recalculate.
         this.dispatchEvent(new FlowAttributeChangeEvent('value', this._value));
     }
 }
