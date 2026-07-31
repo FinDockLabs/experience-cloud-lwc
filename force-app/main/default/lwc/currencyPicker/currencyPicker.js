@@ -1,163 +1,139 @@
-import { api, track, LightningElement } from 'lwc';
+import { api, LightningElement } from 'lwc';
 import { FlowAttributeChangeEvent } from 'lightning/flowSupport';
-import LOCALE from '@salesforce/i18n/locale';
-import USER_CURRENCY from '@salesforce/i18n/currency';
 import getActiveCurrencies from '@salesforce/apex/CurrencyPickerController.getActiveCurrencies';
+import { currencyLocale, dedupe, localizedCurrencyName, normalizeCurrency} from 'c/currencyUtils';
+import { labels } from './currencyPickerLabels';
 
-import ec_label_currency from '@salesforce/label/c.ec_label_currency';
+const normalize = (code) => normalizeCurrency(code, true);
 
-const labels = { ec_label_currency };
-
-// currencySource values
-const SOURCE_FIXED = 'fixed';
-const SOURCE_USER = 'user';
-const SOURCE_PAGE = 'page';
-
-const ISO_CODE = /^[A-Z]{3}$/;
-
-/**
- * currencyPicker — lets a payer choose the payment currency, and emits the active currency so the
- * amount formatting and Pay Button are correct on load. Works on an Experience Cloud page (design
- * properties) and as a Flow screen component (`value` output). When only one currency is available
- * it collapses (no visible control) and behaves like a fixed currency.
- *
- * Currency list: use `allowedCurrencies` (CSV) when set; otherwise auto-detect
- * the org's active currencies via Apex (CurrencyPickerController.getActiveCurrencies). While that
- * loads — and if it fails or the guest can't access it — fall back to a single currency
- * (`defaultCurrency`, else the org/user currency), so the picker is never empty.
- */
 export default class CurrencyPicker extends LightningElement {
-    labels = labels;
-
-    // CSV allow-list, e.g. "EUR,USD,GBP". Empty → single-currency behaviour.
     @api allowedCurrencies = '';
-    // Fixed default (ISO code), used when currencySource = "fixed".
     @api defaultCurrency = '';
-    // "fixed" | "user" | "page" — where the initial currency comes from.
-    @api currencySource = SOURCE_FIXED;
-    // Value injected by the page/flow when currencySource = "page" (page property / Flow variable).
-    @api pageCurrency = '';
 
-    @track _value = '';
-    _currencies = [];
-
-    // Selected currency (ISO). Exposed for Flow output and for parent binding.
     @api
     get value() {
         return this._value;
     }
     set value(val) {
         const code = normalize(val);
-        if (code) {
+        const isSelectable = !this._currencies.length || this._currencies.includes(code);
+
+        if (code && isSelectable && code !== this._value) {
             this._value = code;
+            this._selected = code;
         }
     }
 
+    labels = labels;
+    _configuredCurrencies = [];
+    _currencies = [];
+    _hasConfiguredAllowList = false;
+    _selected = '';
+    _value = '';
+
+    @api
+    validate() {
+        return {
+            isValid: Boolean(this._value),
+            errorMessage: this._value ? null : this.labels.ec_error_payment_methods_unavailable
+        };
+    }
+
     get options() {
-        return this._currencies.map((code) => ({ label: optionLabel(code), value: code }));
+        return this._currencies.map((code) => ({
+            label: localizedCurrencyName(code, this._locale, true),
+            value: code
+        }));
     }
 
     get showPicker() {
         return this._currencies.length > 1;
     }
 
+    get selectedCurrencyAssistiveText() {
+        const label = localizedCurrencyName(this._value, this._locale, true);
+        return `${this.labels.ec_label_currency}: ${label}`;
+    }
+
+    get _locale() {
+        return currencyLocale();
+    }
+
     connectedCallback() {
-        const explicit = dedupe((this.allowedCurrencies || '').split(',').map(normalize).filter(Boolean));
-        if (explicit.length) {
-            this._applyCurrencies(explicit);
-            return;
-        }
-        // No allow-list: render a safe single default immediately, then auto-detect the org currencies.
-        this._applyCurrencies(this._fallbackSingle());
-        this._autoDetect();
+        this._hasConfiguredAllowList = Boolean((this.allowedCurrencies || '').trim());
+        this._configuredCurrencies = dedupe(
+            (this.allowedCurrencies || '').split(',').map(normalize).filter(Boolean)
+        );
+        // Restore the last picked currency before loading the list so _resolveInitial prefers it.
+        this._restoreState();
+        this._loadActiveCurrencies();
     }
 
-    handleChange(event) {
-        this._value = event.detail.value;
-        this._emit();
-    }
-
-    // Auto-detect the org's active currencies (Apex). On failure/guest without access, keep the
-    // synchronous single-currency fallback so payments still work.
-    _autoDetect() {
+    _loadActiveCurrencies() {
         getActiveCurrencies()
-            .then((info) => {
-                const codes = dedupe((info && info.currencies ? info.currencies : []).map(normalize).filter(Boolean));
-                if (codes.length > 1) {
-                    this._applyCurrencies(codes);
-                }
+            .then((currencies) => {
+                const activeCurrencies = dedupe(
+                    (currencies || []).map(normalize).filter(Boolean)
+                );
+                const availableCurrencies = this._hasConfiguredAllowList
+                    ? this._configuredCurrencies.filter((code) =>
+                        activeCurrencies.includes(code)
+                    )
+                    : activeCurrencies;
+
+                this._applyCurrencies(availableCurrencies);
             })
             .catch(() => {
-                /* keep the fallback */
-            });
+                this._applyCurrencies([]);
+            })
+            .finally(() => this._emit());
     }
 
     _applyCurrencies(list) {
-        this._currencies = list.length ? list : this._fallbackSingle();
+        this._currencies = list;
         this._value = this._resolveInitial();
-        this._emit();
     }
 
-    _fallbackSingle() {
-        const single = normalize(this.defaultCurrency) || normalize(USER_CURRENCY);
-        return single ? [single] : [];
-    }
-
-    //source value → allowed-list check → Fixed default → first allowed.
     _resolveInitial() {
-        const candidate = normalize(this._fromSource());
-        if (candidate && this._currencies.includes(candidate)) {
-            return candidate;
+        if (this._selected && this._currencies.includes(this._selected)) {
+            return this._selected;
         }
-        const fixed = normalize(this.defaultCurrency);
-        if (fixed && this._currencies.includes(fixed)) {
-            return fixed;
+        const preferred = normalize(this.defaultCurrency);
+        if (preferred && this._currencies.includes(preferred)) {
+            return preferred;
         }
-        return this._currencies[0] || candidate || fixed || '';
-    }
-
-    _fromSource() {
-        switch ((this.currencySource || SOURCE_FIXED).toLowerCase()) {
-            case SOURCE_USER:
-                return USER_CURRENCY; // org/user currency; for guests this is the org default
-            case SOURCE_PAGE:
-                return this.pageCurrency || urlParam('currency');
-            case SOURCE_FIXED:
-            default:
-                return this.defaultCurrency;
-        }
+        return this._currencies[0] || '';
     }
 
     _emit() {
         this.dispatchEvent(new CustomEvent('currencychange', { detail: { currency: this._value } }));
         this.dispatchEvent(new FlowAttributeChangeEvent('value', this._value));
     }
-}
 
-function normalize(code) {
-    const upper = (code || '').toString().trim().toUpperCase();
-    return ISO_CODE.test(upper) ? upper : '';
-}
-
-function dedupe(list) {
-    return [...new Set(list)];
-}
-
-// "EUR (€)" when a symbol is available and differs from the code, otherwise just "EUR".
-function optionLabel(code) {
-    try {
-        const parts = new Intl.NumberFormat(LOCALE, { style: 'currency', currency: code }).formatToParts(0);
-        const symbol = parts.find((p) => p.type === 'currency')?.value;
-        return symbol && symbol !== code ? `${code} (${symbol})` : code;
-    } catch {
-        return code;
+    handleChange(event) {
+        this._value = event.detail.value;
+        this._selected = event.detail.value;
+        this._saveState();
+        this._emit();
     }
-}
 
-function urlParam(name) {
-    try {
-        return new URLSearchParams(window.location.search).get(name) || '';
-    } catch {
-        return '';
+    _storageKey() {
+        try { return `cp-state-${window.location.pathname}`; } catch { return 'cp-state'; }
+    }
+
+    _saveState() {
+        try {
+            sessionStorage.setItem(this._storageKey(), JSON.stringify({ selected: this._selected }));
+        } catch { /* sessionStorage unavailable */ }
+    }
+
+    _restoreState() {
+        try {
+            const raw = sessionStorage.getItem(this._storageKey());
+            if (!raw) return;
+            const s = JSON.parse(raw);
+            const code = normalize(s.selected);
+            if (code) this._selected = code;
+        } catch { /* ignore parse errors */ }
     }
 }

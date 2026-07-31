@@ -1,38 +1,26 @@
 /**
- * Supplies the org's active currencies to the currencyPicker LWC.
- * Used only when no explicit allow-list is configured on the component.
+ * Returns the org's active ISO currency codes for currencyPicker's auto-detect mode
+ * (used when the component has no explicit allow-list configured).
  *
- * Guest access: expose this class to the site's Guest User profile/permission set to enable
- * auto-detect on public pages. When it isn't accessible or the call fails, the component falls back
- * to a single default currency, so payments still work.
+ * In a multi-currency org this is every active CurrencyType;
+ * in a single-currency org it's just the org's default currency.
  */
 public with sharing class CurrencyPickerController {
-    public class CurrencyInfo {
-        @AuraEnabled
-        public Boolean isMultiCurrency;
-        @AuraEnabled
-        public List<String> currencies;
-        @AuraEnabled
-        public String defaultCurrency;
-    }
-
     @AuraEnabled(Cacheable=true)
-    public static CurrencyInfo getActiveCurrencies() {
-        CurrencyInfo info = new CurrencyInfo();
-        info.isMultiCurrency = UserInfo.isMultiCurrencyOrganization();
-        info.defaultCurrency = UserInfo.getDefaultCurrency();
+    public static List<String> getActiveCurrencies() {
+        if (!UserInfo.isMultiCurrencyOrganization()) {
+            String defaultCurrency = UserInfo.getDefaultCurrency();
+            return String.isNotBlank(defaultCurrency) ? new List<String>{
+                    defaultCurrency
+            } : new List<String>();
+        }
 
         List<String> codes = new List<String>();
-        if (info.isMultiCurrency) {
-            // CurrencyType only exists in multi-currency orgs — use dynamic SOQL so this class also
-            // compiles and deploys in single-currency orgs.
-            for (SObject ct : Database.query('SELECT IsoCode FROM CurrencyType WHERE IsActive = TRUE ORDER BY IsoCode')) {
-                codes.add((String) ct.get('IsoCode'));
-            }
-        } else if (String.isNotBlank(info.defaultCurrency)) {
-            codes.add(info.defaultCurrency);
+        for (SObject ct : Database.query(
+                'SELECT IsoCode FROM CurrencyType WHERE IsActive = TRUE ORDER BY IsoCode',
+                System.AccessLevel.SYSTEM_MODE)) {
+            codes.add((String) ct.get('IsoCode'));
         }
-        info.currencies = codes;
-        return info;
+        return codes;
     }
 }

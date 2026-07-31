@@ -1,17 +1,15 @@
 @IsTest
 private class CurrencyPickerControllerTest {
     @IsTest
-    static void getActiveCurrenciesReturnsInfo() {
+    static void getActiveCurrenciesReturnsCodes() {
         Test.startTest();
-        CurrencyPickerController.CurrencyInfo info = CurrencyPickerController.getActiveCurrencies();
+        List<String> currencies = CurrencyPickerController.getActiveCurrencies();
         Test.stopTest();
 
-        Assert.isNotNull(info, 'Controller should return a CurrencyInfo');
-        Assert.isNotNull(info.currencies, 'currencies should never be null');
-        Assert.areEqual(UserInfo.isMultiCurrencyOrganization(), info.isMultiCurrency, 'isMultiCurrency should match the org');
-        if (!info.isMultiCurrency) {
-            Assert.areEqual(1, info.currencies.size(), 'Single-currency org should return one code');
-            Assert.areEqual(UserInfo.getDefaultCurrency(), info.currencies[0], 'Single-currency org should return the user default');
+        Assert.isNotNull(currencies, 'currencies should never be null');
+        if (!UserInfo.isMultiCurrencyOrganization()) {
+            Assert.areEqual(1, currencies.size(), 'Single-currency org should return one code');
+            Assert.areEqual(UserInfo.getDefaultCurrency(), currencies[0], 'Single-currency org should return the user default');
         }
     }
 }
