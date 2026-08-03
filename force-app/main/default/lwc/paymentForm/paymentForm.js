@@ -38,7 +38,6 @@ export default class PaymentForm extends LightningElement {
     @api defaultFrequency = 'oneTime';
     // Currency picker config — `defaultCurrency` is the fixed default; allowedCurrencies (CSV) enables the picker.
     @api allowedCurrencies = '';
-    @api currencySource = 'fixed';
 
     @track firstName = '';
     // Currency the payer picked in the currencyPicker; empty until they choose.
@@ -84,9 +83,9 @@ export default class PaymentForm extends LightningElement {
     // Currency for display and the payment intent, normalized to a valid ISO 4217 code or ''.
     // When the currencyPicker is present, its report is authoritative once it arrives — including ''
     // (default invalid, inactive, or not allowed). When the admin removes the picker to always charge
-    // one currency, it never reports and the form falls back to defaultCurrency. '' blocks payment.
+    // one currency, it never reports and the form uses defaultCurrency. '' blocks payment.
     get activeCurrency() {
-        const source = this._currencyResolved ? this._selectedCurrency : (this._selectedCurrency || this.defaultCurrency);
+        const source = this._currencyResolved ? this._selectedCurrency : this.defaultCurrency;
         return normalizeCurrency(source);
     }
 
