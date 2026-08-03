@@ -162,6 +162,12 @@ describe('paymentForm', () => {
             expect(element.shadowRoot.querySelector('cpm-pay-button').disabled).toBe(true);
             expect(errorSpy).toHaveBeenCalled();
         });
+
+        it('blocks payment and logs when the amount is not a plain number', () => {
+            const element = createComponent({ amount: '1eee454.25', defaultCurrency: 'EUR' });
+            expect(element.shadowRoot.querySelector('cpm-pay-button').disabled).toBe(true);
+            expect(errorSpy).toHaveBeenCalled();
+        });
     });
 
     describe('admin-configured amount and frequency (read-only)', () => {

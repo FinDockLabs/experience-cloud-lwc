@@ -34,29 +34,29 @@ function todayISODate() {
 
 export default class PaymentForm extends LightningElement {
     @api defaultCurrency = 'EUR';
-    @api amount = '1';
+    // Amount in dot-decimal form (e.g. '10.50'), never a locale format like '10,50'.
+    @api amount = '10.50';
     @api defaultFrequency = 'oneTime';
-    // Currency picker config — `defaultCurrency` is the fixed default; allowedCurrencies (CSV) enables the picker.
+    // CSV of offered currencies (e.g. 'EUR,USD'); empty auto-detects the org's active currencies.
     @api allowedCurrencies = '';
 
     @track firstName = '';
     // Currency the payer picked in the currencyPicker; empty until they choose.
     @track _selectedCurrency = '';
-    // True once the currencyPicker has reported (see activeCurrency). Distinguishes "not resolved yet"
-    // from "resolved to nothing" so activeCurrency stops falling back to defaultCurrency.
+    // True once the currencyPicker has reported, so '' is treated as "no currency", not "not yet".
     @track _currencyResolved = false;
     @track lastName = '';
     @track email = '';
     @track selectedPaymentMethod = null;
     @track paymentIntent = {};
     @track paymentError = null;
-    // Structural validity of the shipped config; set once on connect (see _validateConfig).
-    _configValid = true;
 
     labels = labels;
     paymentMethodConfig = PAYMENT_METHOD_CONFIG;
     _instanceId = ++_nextInstanceId;
     _subscription = null;
+    // Structural validity of the shipped config; set once on connect (see _validateConfig).
+    _configValid = true;
 
     // Per-instance key so two forms on a page don't cross-react on the channel.
     get paymentGroupId() {
@@ -81,20 +81,24 @@ export default class PaymentForm extends LightningElement {
     }
 
     // Currency for display and the payment intent, normalized to a valid ISO 4217 code or ''.
-    // When the currencyPicker is present, its report is authoritative once it arrives — including ''
-    // (default invalid, inactive, or not allowed). When the admin removes the picker to always charge
-    // one currency, it never reports and the form uses defaultCurrency. '' blocks payment.
+    // Uses the currencyPicker's choice once it reports, else defaultCurrency. '' blocks payment.
     get activeCurrency() {
         const source = this._currencyResolved ? this._selectedCurrency : this.defaultCurrency;
         return normalizeCurrency(source);
     }
 
+    // Single numeric reading of the admin-set amount, used for both display and validation.
+    // NaN when the property is empty or not a plain number.
+    get _amountNumber() {
+        return this.amount == null || this.amount === '' ? NaN : Number(this.amount);
+    }
+
     get formattedAmount() {
-        if (this.amount == null || this.amount === '') {
-            return '';
+        if (Number.isNaN(this._amountNumber)) {
+            return this.amount ? `${this.amount} ${this.activeCurrency}` : '';
         }
         try {
-            return new Intl.NumberFormat(currencyLocale(), { style: 'currency', currency: this.activeCurrency }).format(Number(this.amount));
+            return new Intl.NumberFormat(currencyLocale(), { style: 'currency', currency: this.activeCurrency }).format(this._amountNumber);
         } catch {
             return `${this.amount} ${this.activeCurrency}`;
         }
@@ -121,7 +125,7 @@ export default class PaymentForm extends LightningElement {
     }
 
     get _hasValidAmount() {
-        return Number(this.amount) > 0;
+        return this._amountNumber > 0;
     }
 
     // activeCurrency is '' only on a misconfiguration the payer cannot fix (invalid, inactive, or not
@@ -245,9 +249,8 @@ export default class PaymentForm extends LightningElement {
         };
     }
 
-    // Extension point. The form subscribes to payment events from the Pay Button (findockPaymentFlow
-    // channel) and forwards them to parents. It stores the latest error in paymentError.
-    // It renders no UI banner itself to avoid duplicate error messages.
+    // Extension point: forwards Pay Button events (findockPaymentFlow channel) to parents as
+    // paymenterror/paymentpending. Renders no banner itself, to avoid a duplicate error message.
     handlePaymentFlowMessage(message) {
         if (!matchesGroup(this.paymentGroupId, message)) {
             return;
