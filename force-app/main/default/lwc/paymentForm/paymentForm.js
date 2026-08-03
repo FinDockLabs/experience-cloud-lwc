@@ -2,7 +2,7 @@ import { api, wire, LightningElement, track } from "lwc";
 import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService';
 import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
 
-import { currencyLocale } from 'c/currencyUtils';
+import { currencyLocale, normalizeCurrency } from 'c/currencyUtils';
 import { PAYMENT_FLOW_MESSAGE_TYPES, matchesGroup } from 'cpm/paymentFlowChannel';
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
@@ -41,8 +41,11 @@ export default class PaymentForm extends LightningElement {
     @api currencySource = 'fixed';
 
     @track firstName = '';
-    // Currency the payer picked in the currencyPicker; empty until they choose (falls back to `defaultCurrency`).
+    // Currency the payer picked in the currencyPicker; empty until they choose.
     @track _selectedCurrency = '';
+    // True once the currencyPicker has reported (see activeCurrency). Distinguishes "not resolved yet"
+    // from "resolved to nothing" so activeCurrency stops falling back to defaultCurrency.
+    @track _currencyResolved = false;
     @track lastName = '';
     @track email = '';
     @track selectedPaymentMethod = null;
@@ -78,9 +81,13 @@ export default class PaymentForm extends LightningElement {
             && this.selectedPaymentMethod?.recurringRequiresInitialPayment === true;
     }
 
-    // Currency the amount and payment intent use — the payer's picked currency, or the default.
+    // Currency for display and the payment intent, normalized to a valid ISO 4217 code or ''.
+    // When the currencyPicker is present, its report is authoritative once it arrives — including ''
+    // (default invalid, inactive, or not allowed). When the admin removes the picker to always charge
+    // one currency, it never reports and the form falls back to defaultCurrency. '' blocks payment.
     get activeCurrency() {
-        return this._selectedCurrency || this.defaultCurrency;
+        const source = this._currencyResolved ? this._selectedCurrency : (this._selectedCurrency || this.defaultCurrency);
+        return normalizeCurrency(source);
     }
 
     get formattedAmount() {
@@ -100,6 +107,8 @@ export default class PaymentForm extends LightningElement {
             : this.labels.ec_label_frequency_one_time;
     }
 
+    // Route the amount into the pay button's one-time or recurring slot so it renders "Pay <amount>".
+    // Display only — payment runs from paymentIntent.
     get displayAmountOneTime() {
         return this.isRecurring ? null : this.amount;
     }
@@ -112,6 +121,16 @@ export default class PaymentForm extends LightningElement {
         return this._configValid;
     }
 
+    get _hasValidAmount() {
+        return Number(this.amount) > 0;
+    }
+
+    // activeCurrency is '' only on a misconfiguration the payer cannot fix (invalid, inactive, or not
+    // offered), so an empty value blocks payment.
+    get _hasValidCurrency() {
+        return Boolean(this.activeCurrency);
+    }
+
     get isPayButtonDisabled() {
         const inputs = this.template.querySelectorAll('lightning-input');
         const allInputsValid = [...inputs].every(input => input.checkValidity());
@@ -119,7 +138,8 @@ export default class PaymentForm extends LightningElement {
             this.firstName &&
             this.lastName &&
             this.email &&
-            Number(this.amount) > 0 &&
+            this._hasValidAmount &&
+            this._hasValidCurrency &&
             this.selectedPaymentMethod &&
             allInputsValid
         );
@@ -165,11 +185,31 @@ export default class PaymentForm extends LightningElement {
             });
         }
 
+        // Only the payment-method config gates the selector UI (isConfigValid); amount and currency
+        // problems block payment instead (isPayButtonDisabled), so they are logged but do not hide it.
         this._configValid = problems.length === 0;
 
         if (!this._configValid) {
             // eslint-disable-next-line no-console
             console.error('[FinDock] paymentForm — check paymentMethodConfiguration.js:\n- ' + problems.join('\n- '));
+        }
+
+        this._warnIfAmountMisconfigured();
+    }
+
+    // Logs the synchronously-checkable design-property problems for the admin. An inactive or
+    // not-offered currency can only be detected once the currencyPicker reports, and blocks payment.
+    _warnIfAmountMisconfigured() {
+        const problems = [];
+        if (!this._hasValidAmount) {
+            problems.push(`Amount "${this.amount}" must be a number greater than zero.`);
+        }
+        if (this.defaultCurrency && !normalizeCurrency(this.defaultCurrency)) {
+            problems.push(`Default currency "${this.defaultCurrency}" is not a valid ISO 4217 code (for example, EUR or USD).`);
+        }
+        if (problems.length) {
+            // eslint-disable-next-line no-console
+            console.error('[FinDock] paymentForm — check the Amount and Default currency design properties:\n- ' + problems.join('\n- '));
         }
     }
 
@@ -243,7 +283,8 @@ export default class PaymentForm extends LightningElement {
     }
 
     handleCurrencyChange(event) {
-        this._selectedCurrency = event.detail.currency;
+        this._selectedCurrency = event.detail.currency || '';
+        this._currencyResolved = true;
         this._updatePaymentIntentContext();
     }
 }
