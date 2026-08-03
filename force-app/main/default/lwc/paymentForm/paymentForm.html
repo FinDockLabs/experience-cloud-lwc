@@ -71,7 +71,15 @@
                     </div>
                 </template>
             </fieldset>
-            <cpm-pay-button payment-intent={paymentIntent} disabled={isPayButtonDisabled} payment-group-id={paymentGroupId}></cpm-pay-button>
+            <cpm-pay-button
+                payment-intent={paymentIntent}
+                disabled={isPayButtonDisabled}
+                payment-group-id={paymentGroupId}
+                amount-one-time={displayAmountOneTime}
+                currency-one-time={activeCurrency}
+                amount-recurring={displayAmountRecurring}
+                currency-recurring={activeCurrency}>
+            </cpm-pay-button>
         </div>
     </div>
 </template>

@@ -132,6 +132,22 @@ describe('paymentForm', () => {
             const element = createComponent({ amount: 10, defaultFrequency: 'Monthly' });
             expect(element.shadowRoot.querySelector('.payment-summary__frequency').textContent.trim()).not.toBe('');
         });
+
+        it('passes the one-time amount and currency to the pay button so it shows "Pay <amount>"', () => {
+            const element = createComponent({ amount: 50, defaultCurrency: 'USD', defaultFrequency: 'One time' });
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.amountOneTime).toBe(50);
+            expect(payBtn.currencyOneTime).toBe('USD');
+            expect(payBtn.amountRecurring).toBeNull();
+        });
+
+        it('passes the recurring amount and currency to the pay button', () => {
+            const element = createComponent({ amount: 50, defaultCurrency: 'USD', defaultFrequency: 'Monthly' });
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.amountRecurring).toBe(50);
+            expect(payBtn.currencyRecurring).toBe('USD');
+            expect(payBtn.amountOneTime).toBeNull();
+        });
     });
 
     describe('payment intent context', () => {

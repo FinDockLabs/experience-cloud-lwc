@@ -1,8 +1,8 @@
 import { api, wire, LightningElement, track } from "lwc";
 import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService';
 import FINDOCK_PAYMENT_FLOW from '@salesforce/messageChannel/cpm__findockPaymentFlow__c';
-import LOCALE from '@salesforce/i18n/locale';
 
+import { currencyLocale } from 'c/currencyUtils';
 import { PAYMENT_FLOW_MESSAGE_TYPES, matchesGroup } from 'cpm/paymentFlowChannel';
 import { PAYMENT_METHOD_CONFIG } from "./paymentMethodConfiguration";
 import { labels } from "./paymentFormLabels";
@@ -88,7 +88,7 @@ export default class PaymentForm extends LightningElement {
             return '';
         }
         try {
-            return new Intl.NumberFormat(LOCALE, { style: 'currency', currency: this.activeCurrency }).format(Number(this.amount));
+            return new Intl.NumberFormat(currencyLocale(), { style: 'currency', currency: this.activeCurrency }).format(Number(this.amount));
         } catch {
             return `${this.amount} ${this.activeCurrency}`;
         }
@@ -98,6 +98,14 @@ export default class PaymentForm extends LightningElement {
         return this.isRecurring
             ? this.labels.ec_label_frequency_recurring
             : this.labels.ec_label_frequency_one_time;
+    }
+
+    get displayAmountOneTime() {
+        return this.isRecurring ? null : this.amount;
+    }
+
+    get displayAmountRecurring() {
+        return this.isRecurring ? this.amount : null;
     }
 
     get isConfigValid() {
