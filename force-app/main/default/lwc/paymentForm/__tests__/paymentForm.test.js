@@ -150,12 +150,11 @@ describe('paymentForm', () => {
             expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.OneTime.CurrencyISOCode).toBe('USD');
         });
 
-        it('blocks payment and logs when the default currency is not a valid ISO code', () => {
+        it('blocks payment when the default currency is not a valid ISO code', () => {
             const element = createComponent({ amount: 1000, defaultCurrency: 'Euro' });
             const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
             expect(payBtn.disabled).toBe(true);
             expect(payBtn.paymentIntent.OneTime.CurrencyISOCode).toBe('');
-            expect(errorSpy).toHaveBeenCalled();
         });
 
         it('blocks payment and logs when the amount is not a positive number', () => {
@@ -260,7 +259,7 @@ describe('paymentForm', () => {
             });
 
             it('adds a OneTime initial payment when recurringRequiresInitialPayment is true', async () => {
-                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
+                const element = createComponent({ amount: 15, defaultCurrency: 'EUR', defaultFrequency: 'Monthly' });
                 await Promise.resolve();
                 selectMethod(element, { name: 'RequiresInitialCard', processor: 'Test', recurringRequiresInitialPayment: true });
                 await Promise.resolve();
@@ -292,7 +291,7 @@ describe('paymentForm', () => {
             });
 
             it('does not add a OneTime block for a one-time payment (initial-payment logic is recurring-only)', async () => {
-                const element = createComponent({ amount: 15, defaultFrequency: 'One time' });
+                const element = createComponent({ amount: 15, defaultCurrency: 'EUR', defaultFrequency: 'One time' });
                 await Promise.resolve();
                 selectMethod(element, { name: 'RequiresInitialCard', processor: 'Test', recurringRequiresInitialPayment: true });
                 await Promise.resolve();

@@ -196,19 +196,10 @@ export default class PaymentForm extends LightningElement {
         this._warnIfAmountMisconfigured();
     }
 
-    // Logs the synchronously-checkable design-property problems for the admin. An inactive or
-    // not-offered currency can only be detected once the currencyPicker reports, and blocks payment.
     _warnIfAmountMisconfigured() {
-        const problems = [];
         if (!this._hasValidAmount) {
-            problems.push(`Amount "${this.amount}" must be a number greater than zero.`);
-        }
-        if (this.defaultCurrency && !normalizeCurrency(this.defaultCurrency)) {
-            problems.push(`Default currency "${this.defaultCurrency}" is not a valid ISO 4217 code (for example, EUR or USD).`);
-        }
-        if (problems.length) {
             // eslint-disable-next-line no-console
-            console.error('[FinDock] paymentForm — check the Amount and Default currency design properties:\n- ' + problems.join('\n- '));
+            console.error(`[FinDock] paymentForm — Amount "${this.amount}" must be a number greater than zero.`);
         }
     }
 
