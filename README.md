@@ -14,18 +14,22 @@ Note: This deploys an example LWC wrapper around FinDock's components. Both out 
 
 | Component | Tag | Exposed | Purpose |
 | --- | --- | --- | --- |
-| `paymentForm` | `c-payment-form` | Yes | Drop-in payment form component that includes both `c-payment-selector` and `cpm-pay-button`. Replaces a payment Screen Flow. Configurable via Experience Builder design properties. |
+| `paymentForm` | `c-payment-form` | Yes | Drop-in payment form component that includes both `c-payment-selector` and `cpm-pay-button`. Replaces a payment Screen Flow. Configured via `@api` defaults in the code (see below). |
 | `paymentSelector` | `c-payment-selector` | No | Pro-code wrapper around `cpm-payment-method-selector`. Accepts a simplified flat config and enriches it internally. Used by `paymentForm`; can also be embedded directly in custom LWC forms. |
+| `currencyPicker` | `c-currency-picker` | No | Currency selector used inside `paymentForm`. Resolves the org's active currencies via the `CurrencyPickerController` Apex class, lets the payer choose when more than one is offered, and collapses to a fixed currency otherwise. |
 
-### `c-payment-form` — Design Properties
+### `c-payment-form` — Configuration Properties
 
-Out of the box, the payment form uses fixed amount and frequency values. The form displays them as read-only, and the payer fills in their contact details and picks a payment method (a fixed-checkout model). To let the payer choose the amount, fork the form or embed `c-payment-selector` in a custom LWC with your own input.
+These properties are set in code, on the `@api` defaults in `paymentForm.js` — they are **not** exposed in Experience Builder. Edit the defaults (or set them on the tag when embedding the form in a custom parent) to configure a deployment.
+
+Out of the box, the payment form uses fixed amount and frequency values. The form displays them as read-only, and the payer fills in their contact details and picks a payment method (a fixed-checkout model). To let the payer choose the amount, fork the form or embed `c-payment-selector` in a custom LWC with your own input. The payer can choose the currency when more than one is offered (see `allowedCurrencies`).
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `defaultCurrency` | String | `EUR` | ISO currency code shown next to the amount (e.g. `EUR`, `USD`, `GBP`). Used as the fixed default when no picker is enabled. |
-| `amount` | Integer | — | Amount the payer is charged, preset and displayed as read-only. |
-| `defaultFrequency` | String | `One time` | Payment frequency, preset and displayed as read-only. In App Builder / Experience Builder choose `One time` or `Monthly` (the legacy `oneTime`/`recurring` codes are also accepted programmatically). |
+| `defaultCurrency` | String | `EUR` | ISO 4217 currency code (e.g. `EUR`, `USD`, `GBP`). The starting currency, and the fixed currency when only one is offered. An invalid, inactive, or not-offered value blocks payment. |
+| `allowedCurrencies` | String | — | Comma-separated ISO codes the payer may choose (e.g. `EUR,USD`). Empty auto-detects the org's active currencies. The picker is shown only when more than one currency is available. |
+| `amount` | String | `10.50` | Amount the payer is charged, preset and displayed as read-only. Dot-decimal form (e.g. `10.50`), never a locale format like `10,50`; must be greater than zero or payment is blocked. |
+| `defaultFrequency` | String | `oneTime` | Payment frequency, preset and displayed as read-only. Set to `One time` or `Monthly` (the `oneTime`/`recurring` codes are also accepted). |
 
 Recurring payments are sent with `Recurring.Frequency: 'Monthly'` — the only frequency currently supported. Add a configurable frequency property if another frequency is needed.
 
@@ -58,7 +62,7 @@ Example — embedding the standalone selector in a custom LWC:
 2. If the site needs to accept payments from unauthenticated (guest) users, complete the **Experience Cloud & Guest User Setup** steps in [experience-cloud-templates](https://github.com/FinDockLabs/experience-cloud-templates) first — payments will fail at runtime otherwise, even though the page renders correctly. For guest users, also grant access to the `CurrencyPickerController` Apex class.
 3. Run `npm run generate:config -- --org <alias>` to generate `paymentMethodConfiguration.js` from your org's active payment methods, then fill in the `target` field for each entry. See [Payment Method Configuration](#payment-method-configuration) below for details.
 4. Update `SuccessURL` and `FailureURL` in `paymentForm.js` (`_updatePaymentIntentContext`) to point to pages within your Experience Cloud site. These are currently hardcoded (`https://example.com/...`); they will be exposed as `c-payment-form` design properties in a later release so they can be configured in Experience Builder without editing code.
-5. Add `c-payment-form` to your Experience Cloud page in Experience Builder. Set the **Default currency**, **Amount**, and other design properties as needed.
+5. Set the amount, currency, and frequency by editing the `@api` defaults in `paymentForm.js` (see [Configuration Properties](#c-payment-form--configuration-properties)) — they are not exposed in Experience Builder. Then add `c-payment-form` to your Experience Cloud page.
 
 ## Payment Method Configuration
 
@@ -112,6 +116,7 @@ See [Initial payments for recurring payments](https://docs.findock.com/api/initi
 ### Validation and empty states
 
 - **Misconfigured payment methods** — the form checks `paymentMethodConfiguration.js` on load. If it isn't an array, is empty, or an entry is missing `paymentProcessor` / `paymentMethod`, the form renders nothing and logs the specific problem(s) to the browser console. For a valid config, the managed selector surfaces its own message if methods still can't be shown, and the Pay Button stays disabled until a method is selected — so a broken config can never be submitted.
+- **Misconfigured amount or currency** — the Pay Button stays disabled (payment blocked) when `amount` is not a positive number, or when `defaultCurrency` is invalid, inactive in the org, or not among the `allowedCurrencies`. The reason is logged to the browser console for the admin; the form itself still renders.
 - **Runtime failures** — a well-formed config that references a method/processor/target not active in the org isn't caught up front; the PaymentIntent fails at runtime and the message is surfaced via the payment error channel. Regenerate the config (`npm run generate:config`) when the org's methods change.
 
 ### Flat parameter fields
@@ -131,16 +136,16 @@ The components are built to run on a multilingual Experience Cloud (LWR) site �
 
 **Component text comes from Custom Labels.** The strings our components render come from Custom Labels categorized as `FinDock, Experience Cloud` (and `FinDock, Accessibility` for assistive-text labels) — see `force-app/main/default/labels/CustomLabels.labels-meta.xml` and the `paymentFormLabels.js` registry. The payer-facing strings you set in `paymentMethodConfiguration.js` (`displayLabel`, `redirectInstruction`) can be a **plain string** or a **Custom Label reference** (`labels.<name>`) — use a label when you want the text to follow the site language:
 
-  ```js
-  import {labels} from './paymentFormLabels';
-  // ...
-  // Plain string — simplest, not localized:
-  displayLabel: 'Credit Card',
-  // Custom Label reference — follows the site language:
-  displayLabel: labels.ec_your_label,
-  ```
+```js
+import {labels} from './paymentFormLabels';
+// ...
+// Plain string — simplest, not localized:
+displayLabel: 'Credit Card',
+// Custom Label reference — follows the site language:
+displayLabel: labels.ec_your_label,
+```
 
-  To use a label, add it to `CustomLabels.labels-meta.xml` and the `paymentFormLabels.js` registry, then reference it as `labels.<name>`. Omit a method's `displayLabel` to fall back to the API method name (the **smart default**); visible parameter `displayLabel`s fall back to the parameter `name`.
+To use a label, add it to `CustomLabels.labels-meta.xml` and the `paymentFormLabels.js` registry, then reference it as `labels.<name>`. Omit a method's `displayLabel` to fall back to the API method name (the **smart default**); visible parameter `displayLabel`s fall back to the parameter `name`.
 
 **Translating / overriding the text** (done in your own org, per language):
 
@@ -194,6 +199,7 @@ Wrap the component and listen to the event to add your own handling (redirect to
 ```html
 <c-payment-form onpaymenterror={handlePaymentError}></c-payment-form>
 ```
+
 ```js
 handlePaymentError(event) {
     const { statusCode, errorCode, errorLabel } = event.detail;
