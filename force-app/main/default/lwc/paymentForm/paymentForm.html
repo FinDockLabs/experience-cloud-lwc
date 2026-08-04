@@ -59,11 +59,11 @@
                     </c-payment-selector>
                 </template>
                 <template lwc:else>
-                    <div class="payment-methods-error">
+                    <div class="payment-methods-error" role="alert">
                         <lightning-icon
                             icon-name="utility:clear"
                             size="large"
-                            alternative-text={labels.ec_error_payment_methods_unavailable}
+                            alternative-text=""
                             variant="error"
                             class="error-icon">
                         </lightning-icon>
