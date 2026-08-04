@@ -194,7 +194,7 @@ export default class PaymentForm extends LightningElement {
 
         if (!this._configValid) {
             // eslint-disable-next-line no-console
-            console.error('[FinDock] paymentForm — check paymentMethodConfiguration.js:\n- ' + problems.join('\n- '));
+            console.error('Invalid paymentMethodConfiguration.js:\n- ' + problems.join('\n- '));
         }
 
         this._warnIfAmountMisconfigured();
@@ -203,7 +203,7 @@ export default class PaymentForm extends LightningElement {
     _warnIfAmountMisconfigured() {
         if (!this._hasValidAmount) {
             // eslint-disable-next-line no-console
-            console.error(`[FinDock] paymentForm — Amount "${this.amount}" must be a number greater than zero.`);
+            console.error(`Amount "${this.amount}" must be a number greater than zero.`);
         }
     }
 
