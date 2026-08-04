@@ -4,6 +4,6 @@
         <apexClass>CurrencyPickerController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <label>FinDock Experience Cloud Guest Access</label>
+    <label>FinDockLabs Payment Guest Access</label>
     <description>Guest user access to the CurrencyPickerController Apex class. Assign to the site guest user.</description>
 </PermissionSet>
