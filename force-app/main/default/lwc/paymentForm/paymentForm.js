@@ -38,7 +38,7 @@ export default class PaymentForm extends LightningElement {
     @api amount = '10.50';
     @api defaultFrequency = 'oneTime';
     // CSV of offered currencies (e.g. 'EUR,USD'); empty auto-detects the org's active currencies.
-    @api allowedCurrencies = '';
+    @api allowedCurrencies = 'фщьугну, EUR';
 
     @track firstName = '';
     // Currency the payer picked in the currencyPicker; empty until they choose.
