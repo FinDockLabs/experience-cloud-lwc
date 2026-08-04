@@ -150,6 +150,7 @@ To use a label, add it to `CustomLabels.labels-meta.xml` and the `paymentFormLab
 **Translating / overriding the text** (done in your own org, per language):
 
 - **Packaged labels** — in Setup → Custom Labels, open a label and add a *Local Translations/Overrides* entry per language. This also overrides the English source. Overrides are not updated when we change the English source in a release, so keep a translation-management process.
+- **Bulk translation** — `translations/CustomLabels_template.xlf` is a ready-made XLIFF template listing the components' labels, each with an empty `<target>`. For each language, copy it, replace `TARGET_LANGUAGE_CODE` with your Salesforce locale code (e.g. `fr`, `de`), fill in the `<target>` values, and import it via Setup → Translation Workbench → Import. If an import is rejected, copy the `<file ...>` header from a real export of your org (Setup → Translation Workbench → Export) and use that.
 - **Your Flow screens** and **picklist values** — Setup → Translation Workbench → Translate (Setup Component = *Flow*). Note: STF file import rejects Flow components, so flows must be translated through the Translate UI.
 - **Experience Builder content** (titles, rich text) — per-language values in the component property editor, or site export/import.
 
