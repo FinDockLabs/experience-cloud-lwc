@@ -10,14 +10,4 @@
         <target>lightningCommunity__Page</target>
         <target>lightningCommunity__Default</target>
     </targets>
-    <targetConfigs>
-        <targetConfig targets="lightning__RecordPage,lightning__HomePage,lightningCommunity__Default">
-            <property name="currency" type="String" label="Currency"
-                      description="ISO currency code shown next to the amount (e.g. EUR, USD, GBP)." default="EUR"/>
-            <property name="amount" type="Integer" label="Amount"
-                      description="Amount the payer is charged. Set by the admin; shown read-only to the payer."/>
-            <property name="defaultFrequency" type="String" label="Frequency"
-                      description="Payment frequency. Set by the admin; shown read-only to the payer." datasource="One time, Monthly" default="One time"/>
-        </targetConfig>
-    </targetConfigs>
 </LightningComponentBundle>

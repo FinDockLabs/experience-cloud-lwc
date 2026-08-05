@@ -102,9 +102,77 @@ describe('paymentForm', () => {
         });
     });
 
+    describe('currency', () => {
+        it('renders the currency picker', () => {
+            const element = createComponent({ amount: 25, allowedCurrencies: 'EUR,USD' });
+            expect(element.shadowRoot.querySelector('c-currency-picker')).not.toBeNull();
+        });
+
+        it('reformats the amount and updates the intent when the payer changes currency', async () => {
+            const element = createComponent({ amount: 1000, defaultCurrency: 'EUR', allowedCurrencies: 'EUR,USD' });
+            await Promise.resolve();
+            element.shadowRoot.querySelector('c-currency-picker').dispatchEvent(
+                new CustomEvent('currencychange', { detail: { currency: 'USD' } })
+            );
+            await Promise.resolve();
+            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.OneTime.CurrencyISOCode).toBe('USD');
+            expect(element.shadowRoot.querySelector('.payment-summary__amount').textContent).toContain('$');
+        });
+
+        it('blocks payment when the picker resolves to no currency (default inactive or not offered)', async () => {
+            const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+            const element = createComponent({ amount: 1000, defaultCurrency: 'EUR' });
+            await Promise.resolve();
+            // Picker offered nothing (default not active in the org, or excluded by allowedCurrencies).
+            element.shadowRoot.querySelector('c-currency-picker').dispatchEvent(
+                new CustomEvent('currencychange', { detail: { currency: '' } })
+            );
+            await Promise.resolve();
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.disabled).toBe(true);
+            expect(payBtn.paymentIntent.OneTime.CurrencyISOCode).toBe('');
+            errorSpy.mockRestore();
+        });
+    });
+
+    // The picker is optional: an admin who always charges one currency can remove <c-currency-picker>
+    // from the template, and the form then uses the defaultCurrency design property directly. With no
+    // picker there is no currencychange event, so these cases assert the pre-report fallback behavior.
+    describe('currency without a picker (removed by admin)', () => {
+        let errorSpy;
+        beforeEach(() => {
+            errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        });
+        afterEach(() => errorSpy.mockRestore());
+
+        it('uses the default currency for the intent, normalized to upper case', () => {
+            const element = createComponent({ amount: 1000, defaultCurrency: 'usd' });
+            expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.OneTime.CurrencyISOCode).toBe('USD');
+        });
+
+        it('blocks payment when the default currency is not a valid ISO code', () => {
+            const element = createComponent({ amount: 1000, defaultCurrency: 'Euro' });
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.disabled).toBe(true);
+            expect(payBtn.paymentIntent.OneTime.CurrencyISOCode).toBe('');
+        });
+
+        it('blocks payment and logs when the amount is not a positive number', () => {
+            const element = createComponent({ amount: '0', defaultCurrency: 'EUR' });
+            expect(element.shadowRoot.querySelector('cpm-pay-button').disabled).toBe(true);
+            expect(errorSpy).toHaveBeenCalled();
+        });
+
+        it('blocks payment and logs when the amount is not a plain number', () => {
+            const element = createComponent({ amount: '1eee454.25', defaultCurrency: 'EUR' });
+            expect(element.shadowRoot.querySelector('cpm-pay-button').disabled).toBe(true);
+            expect(errorSpy).toHaveBeenCalled();
+        });
+    });
+
     describe('admin-configured amount and frequency (read-only)', () => {
         it('shows the admin amount, currency-formatted', () => {
-            const element = createComponent({ amount: 1000, currency: 'USD' });
+            const element = createComponent({ amount: 1000, defaultCurrency: 'USD' });
             const amount = element.shadowRoot.querySelector('.payment-summary__amount').textContent;
             expect(amount).toContain('1,000');
             expect(amount).toContain('$');
@@ -113,6 +181,22 @@ describe('paymentForm', () => {
         it('renders a frequency label the payer cannot change', () => {
             const element = createComponent({ amount: 10, defaultFrequency: 'Monthly' });
             expect(element.shadowRoot.querySelector('.payment-summary__frequency').textContent.trim()).not.toBe('');
+        });
+
+        it('passes the one-time amount and currency to the pay button so it shows "Pay <amount>"', () => {
+            const element = createComponent({ amount: 50, defaultCurrency: 'USD', defaultFrequency: 'One time' });
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.amountOneTime).toBe(50);
+            expect(payBtn.currencyOneTime).toBe('USD');
+            expect(payBtn.amountRecurring).toBeNull();
+        });
+
+        it('passes the recurring amount and currency to the pay button', () => {
+            const element = createComponent({ amount: 50, defaultCurrency: 'USD', defaultFrequency: 'Monthly' });
+            const payBtn = element.shadowRoot.querySelector('cpm-pay-button');
+            expect(payBtn.amountRecurring).toBe(50);
+            expect(payBtn.currencyRecurring).toBe('USD');
+            expect(payBtn.amountOneTime).toBeNull();
         });
     });
 
@@ -181,7 +265,7 @@ describe('paymentForm', () => {
             });
 
             it('adds a OneTime initial payment when recurringRequiresInitialPayment is true', async () => {
-                const element = createComponent({ amount: 15, defaultFrequency: 'Monthly' });
+                const element = createComponent({ amount: 15, defaultCurrency: 'EUR', defaultFrequency: 'Monthly' });
                 await Promise.resolve();
                 selectMethod(element, { name: 'RequiresInitialCard', processor: 'Test', recurringRequiresInitialPayment: true });
                 await Promise.resolve();
@@ -213,7 +297,7 @@ describe('paymentForm', () => {
             });
 
             it('does not add a OneTime block for a one-time payment (initial-payment logic is recurring-only)', async () => {
-                const element = createComponent({ amount: 15, defaultFrequency: 'One time' });
+                const element = createComponent({ amount: 15, defaultCurrency: 'EUR', defaultFrequency: 'One time' });
                 await Promise.resolve();
                 selectMethod(element, { name: 'RequiresInitialCard', processor: 'Test', recurringRequiresInitialPayment: true });
                 await Promise.resolve();
@@ -224,7 +308,7 @@ describe('paymentForm', () => {
         });
 
         it('passes the configured currency to the intent', async () => {
-            const element = createComponent({ amount: 10, currency: 'USD', defaultFrequency: 'One time' });
+            const element = createComponent({ amount: 10, defaultCurrency: 'USD', defaultFrequency: 'One time' });
             await Promise.resolve();
             expect(element.shadowRoot.querySelector('cpm-pay-button').paymentIntent.OneTime.CurrencyISOCode).toBe('USD');
         });

@@ -46,6 +46,10 @@
             <source>Select a payment method</source>
             <target></target>
         </trans-unit>
+        <trans-unit id="CustomLabel.ec_label_currency" maxwidth="1000" size-unit="char">
+            <source>Currency</source>
+            <target></target>
+        </trans-unit>
         <trans-unit id="CustomLabel.cpm__ec_pay_button_label" maxwidth="1000" size-unit="char">
             <source>Pay</source>
             <target></target>
